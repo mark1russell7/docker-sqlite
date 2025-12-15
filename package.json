@@ -1,0 +1,46 @@
+{
+  "$schema": "https://json.schemastore.org/package",
+  "name": "docker-sqlite",
+  "version": "0.1.0",
+  "description": "Reusable SQLite Docker setup with TypeScript utilities for connection and migration",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "files": [
+    "dist",
+    "src",
+    "schema",
+    "docker-compose.yml"
+  ],
+  "scripts": {
+    "build": "tsc -b",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf dist .tsbuildinfo",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "sql.js": "^1.11.0"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3",
+    "@types/node": "^22.0.0",
+    "@mark1russell7/cue": "github:mark1russell7/cue#main"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "sqlite",
+    "docker",
+    "database",
+    "typescript"
+  ],
+  "license": "MIT",
+  "sideEffects": false
+}

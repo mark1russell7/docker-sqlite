@@ -1,0 +1,30 @@
+# SQLite Docker Compose Configuration
+#
+# Provides a web UI for browsing SQLite databases.
+#
+# Environment variables (with defaults):
+#   SQLITE_CONTAINER_NAME - Container name (default: sqlite-web)
+#   SQLITE_PORT           - Host port for web UI (default: 8080)
+#   SQLITE_DB_PATH        - Path to database directory (default: ./data)
+#   SQLITE_DB_NAME        - Database filename (default: cli.db)
+#
+# Usage:
+#   docker compose up -d
+#   docker compose down
+#   Open http://localhost:8080 to browse the database
+
+services:
+  sqlite-web:
+    image: coleifer/sqlite-web
+    container_name: ${SQLITE_CONTAINER_NAME:-sqlite-web}
+    ports:
+      - "${SQLITE_PORT:-8080}:8080"
+    volumes:
+      - ${SQLITE_DB_PATH:-./data}:/data:rw
+    command: sqlite_web -H 0.0.0.0 /data/${SQLITE_DB_NAME:-cli.db}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:8080/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
