@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package",
-  "name": "docker-sqlite",
+  "name": "@mark1russell7/docker-sqlite",
   "version": "0.1.0",
   "description": "Reusable SQLite Docker setup with TypeScript utilities for connection and migration",
   "type": "module",
