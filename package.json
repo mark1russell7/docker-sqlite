@@ -42,5 +42,10 @@
     "typescript"
   ],
   "license": "MIT",
-  "sideEffects": false
+  "sideEffects": false,
+  "pnpm": {
+    "onlyBuiltDependencies": [
+      "@mark1russell7/cue"
+    ]
+  }
 }
