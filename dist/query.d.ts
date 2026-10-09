@@ -25,6 +25,11 @@ export declare function query<T = Record<string, unknown>>(db: Database, sql: st
  */
 export declare function execute(db: Database, sql: string, params?: unknown[]): ExecuteResult;
 /**
+ * True when `sql` holds more than one statement. Nothing runs: the function only prepares the
+ * first statement and examines the SQL after it.
+ */
+export declare function hasSeveralStatements(db: Database, sql: string): boolean;
+/**
  * Execute multiple statements (for schema setup, etc.)
  *
  * @example

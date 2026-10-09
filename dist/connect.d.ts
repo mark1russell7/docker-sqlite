@@ -4,6 +4,11 @@
 import { type Database } from "sql.js";
 import type { ConnectionConfig, ConnectionCallback } from "./types.js";
 /**
+ * The queue key of a file. Windows file names do not depend on case, so the key is in lower
+ * case there. Before, two spellings of one file had two queues, and their calls ran at once.
+ */
+export declare function fileQueueKey(dbPath: string, platform?: NodeJS.Platform): string;
+/**
  * Execute a callback with a SQLite connection, ensuring proper cleanup and persistence.
  *
  * @example

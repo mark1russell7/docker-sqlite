@@ -22,7 +22,8 @@
     "build": "tsc -b",
     "typecheck": "tsc --noEmit",
     "clean": "rm -rf dist .tsbuildinfo",
-    "prepare": "npm run build"
+    "prepare": "npm run build",
+    "test": "vitest run"
   },
   "dependencies": {
     "sql.js": "^1.11.0"
@@ -30,7 +31,8 @@
   "devDependencies": {
     "typescript": "^5.9.3",
     "@types/node": "^22.0.0",
-    "@mark1russell7/cue": "github:mark1russell7/cue#main"
+    "@mark1russell7/cue": "github:mark1russell7/cue#main",
+    "vitest": "^4.1.11"
   },
   "engines": {
     "node": ">=20"

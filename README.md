@@ -302,8 +302,9 @@ console.log(users.rows);
 **Returns:** Result of the callback function
 
 **Behavior:**
-- Creates database file if it doesn't exist
-- Automatically saves changes after callback completes
+- Saves the database after the callback completes, only when its content changed. A read does not write the file, so a read-only file can be read, and a read cannot write an old copy over the changes of another process.
+- Makes the database file only when the callback changes the database. A query of a missing file does not make an empty file.
+- Calls for one file run one at a time in this process. On Windows, two spellings of one path (case) share one queue.
 - Closes database connection in finally block
 - Creates parent directories as needed
 
@@ -382,6 +383,8 @@ const result = execute(
 console.log(result.changes);     // 1
 console.log(lastInsertRowId(db)); // New row ID
 ```
+
+SQL with several statements runs completely when there are no parameters, and `changes` counts the rows of all statements. With parameters, several statements are an error: parameters bind to one statement.
 
 **Returns:**
 ```typescript

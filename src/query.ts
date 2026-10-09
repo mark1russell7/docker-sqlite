@@ -55,9 +55,60 @@ export function execute(
   sql: string,
   params: unknown[] = []
 ): ExecuteResult {
+  // With parameters, sql.js runs only the first statement. Before, the other statements were
+  // ignored and the call reported success. Now several statements run with no parameters, and
+  // are an error with parameters.
+  if (hasSeveralStatements(db, sql)) {
+    if (params.length > 0) {
+      throw new Error(
+        "execute() binds parameters to one statement, and the SQL has several. Send one statement per call."
+      );
+    }
+    const before = totalChanges(db);
+    db.exec(sql);
+    return { changes: totalChanges(db) - before };
+  }
   db.run(sql, params as (string | number | Uint8Array | null)[]);
   const changes = db.getRowsModified();
   return { changes };
+}
+
+/** The number of rows that the statements of this connection changed. */
+function totalChanges(db: Database): number {
+  const result = db.exec("SELECT total_changes()");
+  return Number(result[0]?.values[0]?.[0] ?? 0);
+}
+
+/** True when the text holds SQL other than spaces, ";" and comments. */
+function holdsStatement(sql: string): boolean {
+  return sql
+    .replace(/--[^\n]*/g, "")
+    .replace(/\/\*[\s\S]*?\*\//g, "")
+    .replace(/[\s;]/g, "")
+    .length > 0;
+}
+
+/**
+ * True when `sql` holds more than one statement. Nothing runs: the function only prepares the
+ * first statement and examines the SQL after it.
+ */
+export function hasSeveralStatements(db: Database, sql: string): boolean {
+  const iterator = db.iterateStatements(sql);
+  const first = iterator.next();
+  if (first.done) {
+    return false;
+  }
+  const rest = iterator.getRemainingSQL();
+  // Read the iterator to its end: this frees the statement and the copy of the SQL. A later
+  // statement can fail to prepare (its table does not exist yet), and that also ends it.
+  try {
+    while (!iterator.next().done) {
+      // Prepare only
+    }
+  } catch {
+    // The iterator ended
+  }
+  return holdsStatement(rest);
 }
 
 /**

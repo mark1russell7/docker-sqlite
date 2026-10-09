@@ -14,6 +14,13 @@ declare module "sql.js" {
     export(): Uint8Array;
     close(): void;
     getRowsModified(): number;
+    iterateStatements(sql: string): StatementIterator;
+  }
+
+  export interface StatementIterator extends Iterator<Statement> {
+    next(): IteratorResult<Statement>;
+    getRemainingSQL(): string;
+    [Symbol.iterator](): StatementIterator;
   }
 
   export interface Statement {

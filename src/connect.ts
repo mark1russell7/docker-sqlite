@@ -19,40 +19,60 @@ async function getSql(): Promise<Awaited<ReturnType<typeof initSqlJs>>> {
   return sqlPromise;
 }
 
+/** A database and the bytes of its file when it was loaded (null: there was no file). */
+interface LoadedDatabase {
+  db: Database;
+  original: Uint8Array | null;
+}
+
 /**
  * Load a database from a file path or create a new one
  */
-async function loadDatabase(dbPath: string): Promise<Database> {
+async function loadDatabase(dbPath: string): Promise<LoadedDatabase> {
   const SQL = await getSql();
 
   if (dbPath === ":memory:") {
-    return new SQL.Database();
+    return { db: new SQL.Database(), original: null };
   }
 
   try {
     const buffer = await readFile(dbPath);
-    return new SQL.Database(buffer);
+    // sql.js keeps the array that it gets and writes into it: give it a copy, so `original`
+    // keeps the bytes of the file
+    return { db: new SQL.Database(new Uint8Array(buffer)), original: buffer };
   } catch (error) {
     if ((error as NodeJS.ErrnoException).code === "ENOENT") {
       // File doesn't exist, create new database
-      return new SQL.Database();
+      return { db: new SQL.Database(), original: null };
     }
     throw error;
   }
 }
 
 /**
- * Save a database to a file path.
+ * Save a database to a file path, when its content changed.
+ *
+ * A database that did not change is not written. Before, each call wrote the file, also a
+ * read: a read failed on a read-only file (EPERM), a read wrote an old copy over the rows of
+ * another process, and a query of a missing file made an empty file. The export of a
+ * database that did not change has the bytes of its file, and an empty new database exports
+ * no bytes.
  *
  * Writes a temporary file and renames it over the database, so a crash during the write
  * cannot leave a truncated database (the rename replaces the file in one step).
  */
-async function saveDatabase(db: Database, dbPath: string): Promise<void> {
+async function saveDatabase(db: Database, dbPath: string, original: Uint8Array | null): Promise<Uint8Array | null> {
   if (dbPath === ":memory:") {
-    return;
+    return null;
   }
 
   const data = db.export();
+  const unchanged = original
+    ? Buffer.compare(Buffer.from(data), Buffer.from(original)) === 0
+    : data.length === 0;
+  if (unchanged) {
+    return original;
+  }
   const buffer = Buffer.from(data);
 
   // Ensure directory exists
@@ -67,6 +87,7 @@ async function saveDatabase(db: Database, dbPath: string): Promise<void> {
     await unlink(tempPath).catch(() => {});
     await writeFile(dbPath, buffer);
   }
+  return data;
 }
 
 /**
@@ -77,11 +98,20 @@ async function saveDatabase(db: Database, dbPath: string): Promise<void> {
  */
 const fileQueues = new Map<string, Promise<unknown>>();
 
+/**
+ * The queue key of a file. Windows file names do not depend on case, so the key is in lower
+ * case there. Before, two spellings of one file had two queues, and their calls ran at once.
+ */
+export function fileQueueKey(dbPath: string, platform: NodeJS.Platform = process.platform): string {
+  const path = resolve(dbPath);
+  return platform === "win32" ? path.toLowerCase() : path;
+}
+
 async function inFileQueue<T>(dbPath: string, task: () => Promise<T>): Promise<T> {
   if (dbPath === ":memory:") {
     return task();
   }
-  const key = resolve(dbPath);
+  const key = fileQueueKey(dbPath);
   const previous = fileQueues.get(key) ?? Promise.resolve();
   const run = previous.then(task, task);
   const tail = run.then(
@@ -123,12 +153,12 @@ export async function withConnection<T>(
   fn: ConnectionCallback<T>
 ): Promise<T> {
   return inFileQueue(config.dbPath, async () => {
-    const db = await loadDatabase(config.dbPath);
+    const { db, original } = await loadDatabase(config.dbPath);
 
     try {
       const result = await fn(db);
-      // Save changes back to file
-      await saveDatabase(db, config.dbPath);
+      // Save changes back to file (only when there are changes)
+      await saveDatabase(db, config.dbPath, original);
       return result;
     } finally {
       db.close();
@@ -154,7 +184,11 @@ export async function withConnection<T>(
 export async function createConnection(
   config: ConnectionConfig
 ): Promise<{ db: Database; save: () => Promise<void> }> {
-  const db = await loadDatabase(config.dbPath);
-  const save = () => saveDatabase(db, config.dbPath);
+  const { db, original } = await loadDatabase(config.dbPath);
+  // The bytes of the file after the last save, to compare the next save with
+  let saved = original;
+  const save = async (): Promise<void> => {
+    saved = await saveDatabase(db, config.dbPath, saved);
+  };
   return { db, save };
 }
