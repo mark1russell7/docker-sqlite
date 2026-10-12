@@ -1,11 +1,28 @@
 # @mark1russell7/docker-sqlite
 
 [![npm version](https://img.shields.io/npm/v/@mark1russell7/docker-sqlite.svg)](https://www.npmjs.com/package/@mark1russell7/docker-sqlite)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
-[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-blue.svg)](https://www.typescriptlang.org/)
-[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D20-green.svg)](https://nodejs.org/)
+[![License: MIT](https://img.shields.io/npm/l/@mark1russell7/docker-sqlite.svg)](./LICENSE)
+[![Node.js](https://img.shields.io/badge/Node.js-%3E%3D22-green.svg)](https://nodejs.org/)
+[![Part of client](https://img.shields.io/badge/part%20of-client-1f3fbf)](https://mark1russell7.github.io/client/)
 
 > Reusable SQLite setup with TypeScript utilities for connection management, queries, and migrations using sql.js (SQLite compiled to WASM).
+
+```bash
+npm install @mark1russell7/docker-sqlite
+```
+
+```typescript
+import { withConnection, execute, query } from "@mark1russell7/docker-sqlite";
+
+const rows = await withConnection({ dbPath: "./data/app.db" }, (db) => {
+  execute(db, "CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, text TEXT)");
+  execute(db, "INSERT INTO notes (text) VALUES (?)", ["hello"]);
+  return query(db, "SELECT text FROM notes").rows;
+});
+console.log(rows); // [{ text: "hello" }] (one more row on each run)
+```
+
+The file is saved only when the database changed, and calls for one file run one at a time. The package is the database layer of `db.*` and `logs.*` in the [client monorepo](https://github.com/mark1russell7/client) (see [the client site](https://mark1russell7.github.io/client/)).
 
 ## Overview
 
@@ -207,7 +224,7 @@ npm install @mark1russell7/docker-sqlite
 
 ### Requirements
 
-- **Node.js**: >= 20
+- **Node.js**: >= 22
 - **Docker** (optional): For web UI to browse database
 - **Docker Compose** (optional): For orchestration
 

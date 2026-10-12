@@ -2,7 +2,34 @@
   "$schema": "https://json.schemastore.org/package",
   "name": "@mark1russell7/docker-sqlite",
   "version": "0.1.0",
-  "description": "Reusable SQLite Docker setup with TypeScript utilities for connection and migration",
+  "description": "SQLite for Node.js with no native build: sql.js (SQLite in WebAssembly) with safe file access (one call at a time per file, atomic saves, no write on read), queries, migrations and an optional Docker Compose web UI.",
+  "keywords": [
+    "sqlite",
+    "sqlite3",
+    "sql.js",
+    "wasm",
+    "webassembly",
+    "database",
+    "migrations",
+    "schema-migrations",
+    "query",
+    "embedded-database",
+    "docker",
+    "docker-compose",
+    "sqlite-web",
+    "typescript",
+    "node"
+  ],
+  "homepage": "https://github.com/mark1russell7/docker-sqlite#readme",
+  "bugs": {
+    "url": "https://github.com/mark1russell7/docker-sqlite/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mark1russell7/docker-sqlite.git"
+  },
+  "license": "MIT",
+  "author": "Mark Russell (https://github.com/mark1russell7)",
   "type": "module",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -10,13 +37,21 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
-    }
+    },
+    "./docker-compose.yml": "./docker-compose.yml",
+    "./schema/*": "./schema/*",
+    "./package.json": "./package.json"
   },
   "files": [
     "dist",
     "src",
+    "!dist/**/*.test.*",
+    "!src/**/*.test.ts",
     "schema",
-    "docker-compose.yml"
+    "docker-compose.yml",
+    "README.md",
+    "CHANGELOG.md",
+    "LICENSE"
   ],
   "scripts": {
     "build": "tsc -b",
@@ -26,25 +61,23 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@types/sql.js": "^1.4.11",
     "sql.js": "^1.11.0"
   },
   "devDependencies": {
-    "typescript": "^5.9.3",
-    "@types/node": "^22.0.0",
     "@mark1russell7/cue": "github:mark1russell7/cue#main",
+    "@types/node": "^22.0.0",
+    "typescript": "^5.9.3",
     "vitest": "^4.1.11"
   },
   "engines": {
-    "node": ">=20"
+    "node": ">=22"
   },
-  "keywords": [
-    "sqlite",
-    "docker",
-    "database",
-    "typescript"
-  ],
-  "license": "MIT",
   "sideEffects": false,
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
   "pnpm": {
     "onlyBuiltDependencies": [
       "@mark1russell7/cue"
