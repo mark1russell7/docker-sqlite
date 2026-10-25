@@ -18,6 +18,141 @@ const MIGRATIONS_TABLE_SQL = `
 function ensureMigrationsTable(db) {
     execMultiple(db, MIGRATIONS_TABLE_SQL);
 }
+/** The name of the savepoint that holds one migration and its record. */
+const SAVEPOINT = "docker_sqlite_migration";
+/**
+ * The first words of the statements that control transactions, cannot run in a transaction
+ * (VACUUM, ATTACH) or can do nothing there (PRAGMA foreign_keys).
+ */
+const OUTSIDE_A_TRANSACTION = new Set([
+    "BEGIN",
+    "COMMIT",
+    "END",
+    "ROLLBACK",
+    "SAVEPOINT",
+    "RELEASE",
+    "VACUUM",
+    "ATTACH",
+    "DETACH",
+    "PRAGMA",
+]);
+/**
+ * The tokens of SQL text: the words in upper case, ";" for each semicolon, and "?" for each
+ * other token. Comments are skipped. A string or a quoted name is one "?" token, so a word in it
+ * is not a keyword.
+ */
+function* tokens(sql) {
+    const word = /[\p{L}_][\p{L}\p{N}_$]*/uy;
+    let i = 0;
+    while (i < sql.length) {
+        const c = sql[i];
+        if (/\s/.test(c)) {
+            i++;
+        }
+        else if (c === "-" && sql[i + 1] === "-") {
+            const end = sql.indexOf("\n", i);
+            i = end < 0 ? sql.length : end + 1;
+        }
+        else if (c === "/" && sql[i + 1] === "*") {
+            const end = sql.indexOf("*/", i + 2);
+            i = end < 0 ? sql.length : end + 2;
+        }
+        else if (c === "'" || c === '"' || c === "`" || c === "[") {
+            // A quote in the text is two quotes. A name in brackets cannot hold "]".
+            const close = c === "[" ? "]" : c;
+            let end = sql.indexOf(close, i + 1);
+            while (end >= 0 && close !== "]" && sql[end + 1] === close) {
+                end = sql.indexOf(close, end + 2);
+            }
+            i = end < 0 ? sql.length : end + 1;
+            yield "?";
+        }
+        else if (c === ";") {
+            i++;
+            yield ";";
+        }
+        else {
+            word.lastIndex = i;
+            const match = word.exec(sql);
+            if (match) {
+                i += match[0].length;
+                yield match[0].toUpperCase();
+            }
+            else {
+                i++;
+                yield "?";
+            }
+        }
+    }
+}
+/**
+ * The first word of each statement of `sql`, in upper case. The statements in the body of a
+ * trigger are part of the trigger: like sqlite3_complete(), the trigger ends at "; END ;".
+ */
+function statementKeywords(sql) {
+    const keywords = [];
+    let words = [];
+    let trigger = false;
+    let afterSemicolon = false;
+    let afterEnd = false;
+    for (const token of tokens(sql)) {
+        if (token === ";") {
+            if (!trigger || afterEnd) {
+                words = [];
+                trigger = false;
+                afterEnd = false;
+            }
+            else {
+                afterSemicolon = true;
+            }
+            continue;
+        }
+        if (words.length === 0) {
+            keywords.push(token);
+        }
+        if (words.length < 3) {
+            words.push(token);
+            const [first, second, third] = words;
+            trigger ||=
+                first === "CREATE" &&
+                    (second === "TRIGGER" || ((second === "TEMP" || second === "TEMPORARY") && third === "TRIGGER"));
+        }
+        afterEnd = trigger && afterSemicolon && token === "END";
+        afterSemicolon = false;
+    }
+    return keywords;
+}
+/**
+ * Run `work` in a savepoint: its changes stay only when it succeeds. Before, a migration that
+ * failed after its first statement kept the changes of those statements, and was not recorded:
+ * the next run ran it again and failed ("table already exists").
+ *
+ * A savepoint also works in a transaction of the caller, and keeps that transaction open. SQL
+ * that controls transactions itself (BEGIN, COMMIT, VACUUM, PRAGMA and the others in
+ * OUTSIDE_A_TRANSACTION) runs without a savepoint, as before: in a transaction it fails or does
+ * nothing.
+ */
+function atomically(db, sql, work) {
+    if (statementKeywords(sql).some((keyword) => OUTSIDE_A_TRANSACTION.has(keyword))) {
+        work();
+        return;
+    }
+    db.exec(`SAVEPOINT ${SAVEPOINT}`);
+    try {
+        work();
+        db.exec(`RELEASE ${SAVEPOINT}`);
+    }
+    catch (error) {
+        try {
+            db.exec(`ROLLBACK TO ${SAVEPOINT}`);
+            db.exec(`RELEASE ${SAVEPOINT}`);
+        }
+        catch {
+            // Some errors end the transaction (ON CONFLICT ROLLBACK): then the savepoint is gone
+        }
+        throw error;
+    }
+}
 /**
  * Get the current migration status
  */
@@ -66,10 +201,11 @@ export function runMigrations(db, migrations) {
     const applied = [];
     for (const migration of status.pendingMigrations) {
         try {
-            // Run the migration
-            execMultiple(db, migration.up);
-            // Record it as applied
-            execute(db, "INSERT INTO _migrations (version, description) VALUES (?, ?)", [migration.version, migration.description]);
+            // Run the migration and record it as applied, in one savepoint
+            atomically(db, migration.up, () => {
+                execMultiple(db, migration.up);
+                execute(db, "INSERT INTO _migrations (version, description) VALUES (?, ?)", [migration.version, migration.description]);
+            });
             applied.push(migration);
         }
         catch (error) {
@@ -93,9 +229,12 @@ export function rollbackMigration(db, migrations) {
     if (!migration.down) {
         throw new Error(`Migration ${migration.version} (${migration.description}) has no down migration`);
     }
+    const down = migration.down;
     try {
-        execMultiple(db, migration.down);
-        execute(db, "DELETE FROM _migrations WHERE version = ?", [migration.version]);
+        atomically(db, down, () => {
+            execMultiple(db, down);
+            execute(db, "DELETE FROM _migrations WHERE version = ?", [migration.version]);
+        });
         return migration;
     }
     catch (error) {

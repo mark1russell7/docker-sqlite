@@ -15,12 +15,11 @@ export function query(db, sql, params = []) {
     const stmt = db.prepare(sql);
     try {
         stmt.bind(params);
+        // The statement knows its columns before the first step. Before, the columns came from the
+        // first row, so a result with no rows had no columns.
+        const columns = stmt.getColumnNames();
         const rows = [];
-        let columns = [];
         while (stmt.step()) {
-            if (columns.length === 0) {
-                columns = stmt.getColumnNames();
-            }
             rows.push(stmt.getAsObject());
         }
         return { columns, rows };
