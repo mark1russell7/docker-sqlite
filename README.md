@@ -322,6 +322,7 @@ console.log(users.rows);
 - Saves the database after the callback completes, only when its content changed. A read does not write the file, so a read-only file can be read, and a read cannot write an old copy over the changes of another process.
 - Makes the database file only when the callback changes the database. A query of a missing file does not make an empty file.
 - Calls for one file run one at a time in this process. On Windows, two spellings of one path (case) share one queue.
+- Writes a temporary file, flushes it to the disk and renames it over the database file. A crash or a power loss during the save cannot leave a truncated database.
 - Closes database connection in finally block
 - Creates parent directories as needed
 
@@ -381,6 +382,8 @@ console.log(result.rows);    // Array of User objects
   rows: T[];          // Result rows as typed objects
 }
 ```
+
+`columns` has the column names also when there are no rows.
 
 ---
 
@@ -534,6 +537,8 @@ await withConnection({ dbPath: './data/app.db' }, (db) => {
 - Records each migration with timestamp
 - Skips already-applied migrations
 - Throws error if migration fails (doesn't continue)
+- Runs each migration and its record in a savepoint. A migration that fails leaves no change, so a corrected migration applies on the next run. In a transaction of the caller, the savepoint keeps that transaction open.
+- A migration whose SQL controls transactions itself (`BEGIN`, `COMMIT`, `END`, `ROLLBACK`, `SAVEPOINT`, `RELEASE`, `VACUUM`, `ATTACH`, `DETACH` or `PRAGMA`) runs without the savepoint: in a transaction, these statements fail or do nothing.
 
 **Returns:** Array of applied migrations
 
@@ -587,6 +592,8 @@ if (rolled) {
 **Requirements:**
 - Migration must have a `down` script
 - Migration must be the current version
+
+The `down` script and the removal of its record run in a savepoint, with the same rules as `runMigrations`.
 
 **Returns:** The rolled-back migration, or `null` if none
 

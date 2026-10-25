@@ -1,5 +1,16 @@
 # Change history
 
+## 0.1.1
+
+### Corrections
+
+- `runMigrations` runs each migration and its record in a savepoint. Before, a migration that failed after its first statement kept the changes of those statements and had no record: the next run failed with "table already exists". `rollbackMigration` does the same for a `down` script.
+- A migration whose SQL controls transactions itself (`BEGIN`, `COMMIT`, `VACUUM`, `PRAGMA` and some others) runs as before, without the savepoint. In a transaction, these statements fail or do nothing.
+- `query` gives the column names also for a result with no rows. Before, `columns` was empty for such a result.
+- A save flushes the temporary file to the disk before the rename, so a power loss cannot leave an empty or partial database.
+- Each save has a temporary file with a random name. Before, the name had only the process id and the time in milliseconds, so two saves in one millisecond could write the same file.
+- A save writes the database file directly only when the rename fails because Windows holds the file open (`EPERM`, `EACCES` or `EBUSY`). Before, each error of the rename started this direct write, which is not atomic.
+
 ## 0.1.0
 
 The first version on npm. Before, projects installed the package from GitHub (`github:mark1russell7/docker-sqlite`).

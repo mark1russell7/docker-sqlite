@@ -25,13 +25,12 @@ export function query<T = Record<string, unknown>>(
   try {
     stmt.bind(params as (string | number | Uint8Array | null)[]);
 
+    // The statement knows its columns before the first step. Before, the columns came from the
+    // first row, so a result with no rows had no columns.
+    const columns = stmt.getColumnNames();
     const rows: T[] = [];
-    let columns: string[] = [];
 
     while (stmt.step()) {
-      if (columns.length === 0) {
-        columns = stmt.getColumnNames();
-      }
       rows.push(stmt.getAsObject() as T);
     }
 

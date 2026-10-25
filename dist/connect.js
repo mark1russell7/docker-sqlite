@@ -2,7 +2,8 @@
  * Connection utilities for SQLite using sql.js
  */
 import initSqlJs, {} from "sql.js";
-import { readFile, writeFile, mkdir, rename, unlink } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { readFile, mkdir, open, rename, unlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 let sqlPromise = null;
 /**
@@ -45,8 +46,9 @@ async function loadDatabase(dbPath) {
  * database that did not change has the bytes of its file, and an empty new database exports
  * no bytes.
  *
- * Writes a temporary file and renames it over the database, so a crash during the write
- * cannot leave a truncated database (the rename replaces the file in one step).
+ * Writes a temporary file, flushes it to the disk and renames it over the database, so a crash
+ * or a power loss during the write cannot leave a truncated database (the rename replaces the
+ * file in one step).
  */
 async function saveDatabase(db, dbPath, original) {
     if (dbPath === ":memory:") {
@@ -62,17 +64,67 @@ async function saveDatabase(db, dbPath, original) {
     const buffer = Buffer.from(data);
     // Ensure directory exists
     await mkdir(dirname(dbPath), { recursive: true });
-    const tempPath = `${dbPath}.${process.pid}.${Date.now()}.tmp`;
-    await writeFile(tempPath, buffer);
+    // A random part, so two saves at once never share a temporary file. Before, the name had only
+    // the process id and the time in milliseconds.
+    const tempPath = `${dbPath}.${process.pid}.${randomUUID()}.tmp`;
+    try {
+        await writeDurably(tempPath, buffer);
+    }
+    catch (error) {
+        await unlink(tempPath).catch(() => { });
+        throw error;
+    }
     try {
         await rename(tempPath, dbPath);
     }
-    catch {
-        // For example, the file is held open on Windows: fall back to a direct write
+    catch (error) {
         await unlink(tempPath).catch(() => { });
-        await writeFile(dbPath, buffer);
+        // The file is held open on Windows: fall back to a direct write. Before, each error of the
+        // rename started the direct write, which is not atomic.
+        if (!FILE_IN_USE.has(error.code ?? "")) {
+            throw error;
+        }
+        await writeDurably(dbPath, buffer);
     }
+    await syncDirectory(dirname(dbPath));
     return data;
+}
+/** The error codes of a rename over a file that another process holds open (Windows). */
+const FILE_IN_USE = new Set(["EPERM", "EACCES", "EBUSY"]);
+/**
+ * Write a file and flush it to the disk before the rename. Without the flush, a power loss soon
+ * after the rename can leave an empty or partial database on some file systems.
+ */
+async function writeDurably(path, data) {
+    const file = await open(path, "w");
+    try {
+        await file.writeFile(data);
+        await file.sync();
+    }
+    finally {
+        await file.close();
+    }
+}
+/**
+ * Flush a directory, so that a rename in it stays after a power loss. Windows cannot open a
+ * directory for this, and some file systems refuse it: the flush is only an extra safety.
+ */
+async function syncDirectory(path) {
+    if (process.platform === "win32") {
+        return;
+    }
+    try {
+        const directory = await open(path, "r");
+        try {
+            await directory.sync();
+        }
+        finally {
+            await directory.close();
+        }
+    }
+    catch {
+        // The rename is done
+    }
 }
 /**
  * The calls that wait for each database file. Each call reads the whole file, changes it in

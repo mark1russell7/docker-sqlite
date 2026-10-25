@@ -55,3 +55,15 @@ describe("hasSeveralStatements", () => {
     });
   });
 });
+
+describe("query", () => {
+  it("gives the columns of a result with no rows", async () => {
+    await withConnection({ dbPath: ":memory:" }, (db) => {
+      execute(db, "CREATE TABLE t (x INTEGER, y TEXT)");
+
+      expect(query(db, "SELECT x, y FROM t")).toEqual({ columns: ["x", "y"], rows: [] });
+      execute(db, "INSERT INTO t VALUES (1, 'a')");
+      expect(query(db, "SELECT x, y FROM t")).toEqual({ columns: ["x", "y"], rows: [{ x: 1, y: "a" }] });
+    });
+  });
+});
