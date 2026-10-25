@@ -6,7 +6,7 @@
 2. Add the changes to `CHANGELOG.md`, below a heading with the version.
 3. Merge the change to `main`.
 
-The workflow `.github/workflows/release.yml` starts the CI gates, builds and packs the package, and publishes it with npm trusted publishing (OIDC) and a provenance statement. It needs no npm token, no tag and no approval.
+The workflow `.github/workflows/release.yml` starts the CI gates, builds and packs the package, and publishes it with npm trusted publishing (OIDC) and a provenance statement. It needs no npm token, no tag and no approval. After the publish, it makes the git tag `v<version>` and a GitHub release with the section of the version in `CHANGELOG.md`.
 
 ## Check a version before the publish
 
