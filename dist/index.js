@@ -27,7 +27,7 @@
  * ```
  */
 // Connection utilities
-export { withConnection, createConnection } from "./connect.js";
+export { withConnection, createConnection, DatabaseFileChangedError } from "./connect.js";
 // Query utilities
 export { query, execute, execMultiple, lastInsertRowId, tableExists, } from "./query.js";
 // Migration utilities

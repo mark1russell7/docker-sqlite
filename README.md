@@ -345,6 +345,30 @@ try {
 }
 ```
 
+**Behavior:**
+- `save()` writes the file only when the database changed, with the same atomic save as `withConnection`.
+- `save()` runs in the queue of the file: one call at a time with `withConnection` and the other saves of this process. In a `withConnection` callback for the same file, it runs at once.
+- `save()` throws a `DatabaseFileChangedError` (`code: "DATABASE_FILE_CHANGED"`) and writes nothing when the file changed after the connection loaded it or saved it last. Another connection or process wrote the file, and the old copy of this connection would replace those changes. After the error, close the connection, open a new one and make the change again.
+
+```typescript
+import { createConnection, DatabaseFileChangedError, execute } from '@mark1russell7/docker-sqlite';
+
+async function addLog(message: string): Promise<void> {
+  const { db, save } = await createConnection({ dbPath: './data/app.db' });
+  try {
+    execute(db, 'INSERT INTO logs (message) VALUES (?)', [message]);
+    await save();
+  } catch (error) {
+    if (error instanceof DatabaseFileChangedError) {
+      return addLog(message); // The file changed: load it again and repeat the change
+    }
+    throw error;
+  } finally {
+    db.close();
+  }
+}
+```
+
 ### Query Operations
 
 #### `query<T>(db, sql, params?): QueryResult<T>`
@@ -1025,6 +1049,7 @@ import {
   // Connection
   withConnection,
   createConnection,
+  DatabaseFileChangedError,
 
   // Query
   query,

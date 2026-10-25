@@ -3,6 +3,7 @@
  */
 
 import initSqlJs, { type Database } from "sql.js";
+import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
 import { readFile, mkdir, open, rename, unlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
@@ -63,7 +64,46 @@ async function loadDatabase(dbPath: string): Promise<LoadedDatabase> {
  * or a power loss during the write cannot leave a truncated database (the rename replaces the
  * file in one step).
  */
-async function saveDatabase(db: Database, dbPath: string, original: Uint8Array | null): Promise<Uint8Array | null> {
+/**
+ * The error of the `save` of `createConnection` when the file changed after the connection
+ * loaded it or saved it last. Another connection or process wrote the file. The save does not
+ * write: it would replace those changes with the old copy of this connection.
+ */
+export class DatabaseFileChangedError extends Error {
+  /** A stable code for checks: `error.code === "DATABASE_FILE_CHANGED"`. */
+  readonly code = "DATABASE_FILE_CHANGED";
+
+  constructor(readonly dbPath: string) {
+    super(
+      `The database file ${dbPath} changed after this connection loaded it: another connection or process wrote it. ` +
+        "The save did not write, because it would replace those changes. Open a new connection and make the change again."
+    );
+    this.name = "DatabaseFileChangedError";
+  }
+}
+
+/** The bytes of a file, or null when there is no file. */
+async function readIfExists(path: string): Promise<Uint8Array | null> {
+  try {
+    return await readFile(path);
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return null;
+    }
+    throw error;
+  }
+}
+
+function sameBytes(a: Uint8Array | null, b: Uint8Array | null): boolean {
+  return a === null || b === null ? a === b : Buffer.compare(Buffer.from(a), Buffer.from(b)) === 0;
+}
+
+async function saveDatabase(
+  db: Database,
+  dbPath: string,
+  original: Uint8Array | null,
+  options: { refuseChangedFile?: boolean } = {}
+): Promise<Uint8Array | null> {
   if (dbPath === ":memory:") {
     return null;
   }
@@ -74,6 +114,11 @@ async function saveDatabase(db: Database, dbPath: string, original: Uint8Array |
     : data.length === 0;
   if (unchanged) {
     return original;
+  }
+  // The file must still have the bytes that this database came from. Else another connection
+  // or process wrote it, and this save would replace its changes.
+  if (options.refuseChangedFile && !sameBytes(await readIfExists(dbPath), original)) {
+    throw new DatabaseFileChangedError(dbPath);
   }
   const buffer = Buffer.from(data);
 
@@ -150,6 +195,13 @@ async function syncDirectory(path: string): Promise<void> {
 const fileQueues = new Map<string, Promise<unknown>>();
 
 /**
+ * The queue keys that the current call holds. A `save` of `createConnection` in a callback of
+ * `withConnection` for the same file runs at once: in the queue, it would wait for the
+ * callback, and the callback waits for it.
+ */
+const heldQueues = new AsyncLocalStorage<ReadonlySet<string>>();
+
+/**
  * The queue key of a file. Windows file names do not depend on case, so the key is in lower
  * case there. Before, two spellings of one file had two queues, and their calls ran at once.
  */
@@ -158,13 +210,23 @@ export function fileQueueKey(dbPath: string, platform: NodeJS.Platform = process
   return platform === "win32" ? path.toLowerCase() : path;
 }
 
-async function inFileQueue<T>(dbPath: string, task: () => Promise<T>): Promise<T> {
+async function inFileQueue<T>(
+  dbPath: string,
+  task: () => Promise<T>,
+  options: { reentrant?: boolean } = {}
+): Promise<T> {
   if (dbPath === ":memory:") {
     return task();
   }
   const key = fileQueueKey(dbPath);
+  const held = heldQueues.getStore();
+  if (options.reentrant && held?.has(key)) {
+    return task();
+  }
+  const holding = new Set(held).add(key);
+  const start = (): Promise<T> => heldQueues.run(holding, task);
   const previous = fileQueues.get(key) ?? Promise.resolve();
-  const run = previous.then(task, task);
+  const run = previous.then(start, start);
   const tail = run.then(
     () => undefined,
     () => undefined
@@ -221,6 +283,11 @@ export async function withConnection<T>(
  * Create a SQLite database that can be manually managed.
  * Caller is responsible for calling db.close() and saving if needed.
  *
+ * `save` runs in the queue of the file, one call at a time with `withConnection` and the other
+ * saves of this process. It throws a `DatabaseFileChangedError` and does not write when the
+ * file changed after this connection loaded it or saved it last. Before, it wrote its old copy
+ * over the changes of the other connection or process. After the error, open a new connection.
+ *
  * @example
  * ```typescript
  * const { db, save } = await createConnection({ dbPath: './data/app.db' });
@@ -238,8 +305,13 @@ export async function createConnection(
   const { db, original } = await loadDatabase(config.dbPath);
   // The bytes of the file after the last save, to compare the next save with
   let saved = original;
-  const save = async (): Promise<void> => {
-    saved = await saveDatabase(db, config.dbPath, saved);
-  };
+  const save = (): Promise<void> =>
+    inFileQueue(
+      config.dbPath,
+      async () => {
+        saved = await saveDatabase(db, config.dbPath, saved, { refuseChangedFile: true });
+      },
+      { reentrant: true }
+    );
   return { db, save };
 }
