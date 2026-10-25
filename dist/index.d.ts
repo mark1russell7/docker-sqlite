@@ -27,7 +27,7 @@
  * ```
  */
 export type { ConnectionConfig, ConnectionCallback, QueryResult, ExecuteResult, Migration, MigrationStatus, } from "./types.js";
-export { withConnection, createConnection } from "./connect.js";
+export { withConnection, createConnection, DatabaseFileChangedError } from "./connect.js";
 export { query, execute, execMultiple, lastInsertRowId, tableExists, } from "./query.js";
 export { getMigrationStatus, runMigrations, rollbackMigration, createMigration, } from "./migrate.js";
 export type { Database } from "sql.js";

@@ -6,7 +6,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import { chmodSync, existsSync, mkdtempSync, readFileSync, rmSync, statSync, utimesSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { createConnection, fileQueueKey, withConnection } from "./connect.js";
+import { createConnection, DatabaseFileChangedError, fileQueueKey, withConnection } from "./connect.js";
 import { execute, query } from "./query.js";
 
 const dirs: string[] = [];
@@ -94,6 +94,98 @@ describe("withConnection", () => {
     const rows = await withConnection({ dbPath }, (db) => query(db, "SELECT x FROM t ORDER BY x").rows);
     expect(rows).toEqual([{ x: 1 }, { x: 2 }]);
     expect(readFileSync(dbPath).length).toBeGreaterThan(0);
+  });
+});
+
+describe("createConnection", () => {
+  async function rowsOf(dbPath: string): Promise<unknown[]> {
+    return withConnection({ dbPath }, (db) => query(db, "SELECT x FROM t ORDER BY x").rows);
+  }
+
+  it("does not write over a change that withConnection made after the load", async () => {
+    const dbPath = tempDb();
+    await seed(dbPath);
+    const handle = await createConnection({ dbPath });
+    await withConnection({ dbPath }, (db) => execute(db, "INSERT INTO t VALUES (2)"));
+
+    execute(handle.db, "INSERT INTO t VALUES (3)");
+    // Before, the save wrote rows 1 and 3, and row 2 was lost
+    const error = await handle.save().catch((caught: unknown) => caught);
+    handle.db.close();
+
+    expect(error).toBeInstanceOf(DatabaseFileChangedError);
+    expect(error).toMatchObject({ code: "DATABASE_FILE_CHANGED", dbPath });
+    expect(await rowsOf(dbPath)).toEqual([{ x: 1 }, { x: 2 }]);
+  });
+
+  it("does not write over the save of another connection", async () => {
+    const dbPath = tempDb();
+    await seed(dbPath);
+    const first = await createConnection({ dbPath });
+    const second = await createConnection({ dbPath });
+    execute(first.db, "INSERT INTO t VALUES (2)");
+    execute(second.db, "INSERT INTO t VALUES (3)");
+
+    await first.save();
+    await expect(second.save()).rejects.toThrow(DatabaseFileChangedError);
+    first.db.close();
+    second.db.close();
+
+    expect(await rowsOf(dbPath)).toEqual([{ x: 1 }, { x: 2 }]);
+  });
+
+  it("saves again after its own save, and makes a missing file", async () => {
+    const dbPath = tempDb();
+    const handle = await createConnection({ dbPath });
+    execute(handle.db, "CREATE TABLE t (x INTEGER)");
+    await handle.save();
+    execute(handle.db, "INSERT INTO t VALUES (1)");
+    await handle.save();
+    execute(handle.db, "INSERT INTO t VALUES (2)");
+    await handle.save();
+    handle.db.close();
+
+    expect(await rowsOf(dbPath)).toEqual([{ x: 1 }, { x: 2 }]);
+  });
+
+  it("saves in a withConnection callback for the same file, without a deadlock", async () => {
+    const dbPath = tempDb();
+    await seed(dbPath);
+    const handle = await createConnection({ dbPath });
+    execute(handle.db, "INSERT INTO t VALUES (2)");
+
+    await withConnection({ dbPath }, async () => {
+      await handle.save();
+    });
+    handle.db.close();
+
+    expect(await rowsOf(dbPath)).toEqual([{ x: 1 }, { x: 2 }]);
+  });
+
+  it("waits for a withConnection call that runs, and then refuses its old copy", async () => {
+    const dbPath = tempDb();
+    await seed(dbPath);
+    const handle = await createConnection({ dbPath });
+    execute(handle.db, "INSERT INTO t VALUES (3)");
+
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let started!: () => void;
+    const inCallback = new Promise<void>((resolve) => (started = resolve));
+    const running = withConnection({ dbPath }, async (db) => {
+      started();
+      await gate;
+      execute(db, "INSERT INTO t VALUES (2)");
+    });
+    await inCallback;
+    // The save waits in the queue until the callback ends and its change is saved
+    const saving = handle.save().catch((caught: unknown) => caught);
+    release();
+    await running;
+
+    expect(await saving).toBeInstanceOf(DatabaseFileChangedError);
+    handle.db.close();
+    expect(await rowsOf(dbPath)).toEqual([{ x: 1 }, { x: 2 }]);
   });
 });
 

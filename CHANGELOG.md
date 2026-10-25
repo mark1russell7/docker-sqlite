@@ -1,5 +1,19 @@
 # Change history
 
+## 0.2.0
+
+### Breaking changes
+
+- The `save` of `createConnection` does not write over a file that changed after the connection loaded it or saved it last. It throws a `DatabaseFileChangedError` and writes nothing. Before, it wrote the old copy of the connection with its change, and the changes of the other connection or process were lost. A program that keeps one connection open while another connection, another process or the web UI writes the same file now gets this error. To continue, close the connection, open a new one and make the change again.
+
+### New
+
+- `DatabaseFileChangedError`, with `code: "DATABASE_FILE_CHANGED"` and `dbPath`.
+
+### Corrections
+
+- The `save` of `createConnection` runs in the queue of the file, one call at a time with `withConnection` and the other saves of this process. Before, it ran outside the queue. In a `withConnection` callback for the same file, it runs at once, so it cannot wait for itself.
+
 ## 0.1.1
 
 ### Corrections
