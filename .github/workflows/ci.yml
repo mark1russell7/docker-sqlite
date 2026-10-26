@@ -18,7 +18,7 @@ concurrency:
 
 jobs:
   ci:
-    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@a743392393fc72acd1f5557eefe06e097bc9f906 # main
+    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@6eea1cec8bcfb62ebe6af7a0d555464c961125c7 # main
     with:
       # tsc -b writes dist, as release.yml builds it
       scripts: build typecheck test
