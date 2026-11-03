@@ -28,15 +28,56 @@ importers:
         specifier: ^4.1.11
         version: 4.1.11(@types/node@22.19.11)(vite@8.3.4(@types/node@22.19.11))
 
+  site:
+    dependencies:
+      '@mark1russell7/docker-sqlite':
+        specifier: workspace:*
+        version: link:..
+      '@mark1russell7/site-pages':
+        specifier: ^0.1.10
+        version: 0.1.10
+      sql.js:
+        specifier: ^1.11.0
+        version: 1.14.0
+    devDependencies:
+      '@mark1russell7/cue':
+        specifier: ^1.0.2
+        version: 1.1.0
+      '@types/node':
+        specifier: ^22.0.0
+        version: 22.19.11
+      '@types/sql.js':
+        specifier: ^1.4.11
+        version: 1.4.11
+      typescript:
+        specifier: ^5.9.3
+        version: 5.9.3
+      vite:
+        specifier: ^8.3.4
+        version: 8.3.4(@types/node@22.19.11)
+      vitest:
+        specifier: ^4.1.11
+        version: 4.1.11(@types/node@22.19.11)(vite@8.3.4(@types/node@22.19.11))
+
 packages:
 
   '@jridgewell/sourcemap-codec@1.6.0':
     resolution: {integrity: sha512-T7jf+5zgsZHwNJ4lvQ7/aezbyk0nNX+zJVWpmHA7VYsEx7a7qr5Rg5IbtJFqkgze5Y2sruq1RUY8Q837Od7iFw==}
 
+  '@mark1russell7/cue@1.1.0':
+    resolution: {integrity: sha512-R9pjuWNFqd/LSfOI8uY7w8E2Dri8UQFGLodBuV4d2E0pwzWM5ISVXWVhC7+aYgrR1GXSMzbyo5ZLWvqyQCwdIg==}
+    engines: {node: '>=22'}
+    hasBin: true
+
   '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/fb96d136d5c451b7ee4f16e50b756b855e7320ab':
     resolution: {tarball: https://codeload.github.com/mark1russell7/cue/tar.gz/fb96d136d5c451b7ee4f16e50b756b855e7320ab}
     version: 1.0.0
     engines: {node: '>=25.0.0', npm: '>=11.0.0'}
+    hasBin: true
+
+  '@mark1russell7/site-pages@0.1.10':
+    resolution: {integrity: sha512-dcMPqlWsxJ+fRvl5cZH01a+/94ujk5ogRfg5puO2JC7pvE5jq1IV48UrcbtP+zcS5r9zMUbvUVz74E9xQYY8FQ==}
+    engines: {node: '>=22'}
     hasBin: true
 
   '@oxc-project/types@0.153.0':
@@ -457,7 +498,11 @@ snapshots:
 
   '@jridgewell/sourcemap-codec@1.6.0': {}
 
+  '@mark1russell7/cue@1.1.0': {}
+
   '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/fb96d136d5c451b7ee4f16e50b756b855e7320ab': {}
+
+  '@mark1russell7/site-pages@0.1.10': {}
 
   '@oxc-project/types@0.153.0': {}
 

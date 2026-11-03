@@ -1,5 +1,13 @@
 # Change history
 
+## 0.2.1
+
+### New
+
+- The entry `@mark1russell7/docker-sqlite/pure` has the query functions, the migrations and their types. It imports no Node.js module, so a browser bundle can use it with sql.js. The main entry does not change.
+- The site at [mark1russell7.github.io/docker-sqlite](https://mark1russell7.github.io/docker-sqlite/) runs the package on real SQLite in the browser. A visitor edits the migrations, runs them and queries the rows. The log shows the SQL of each call.
+- The `homepage` of the package is the site.
+
 ## 0.2.0
 
 ### Breaking changes

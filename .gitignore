@@ -12,3 +12,6 @@ cue.mod/pkg/
 
 # npm pack output
 *.tgz
+
+# The build of the site. The deploy builds it again.
+site/dist/

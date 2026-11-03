@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package",
   "name": "@mark1russell7/docker-sqlite",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "SQLite for Node.js with no native build: sql.js (SQLite in WebAssembly) with safe file access (one call at a time per file, atomic saves, no write on read), queries, migrations and an optional Docker Compose web UI.",
   "keywords": [
     "sqlite",
@@ -20,7 +20,7 @@
     "typescript",
     "node"
   ],
-  "homepage": "https://github.com/mark1russell7/docker-sqlite#readme",
+  "homepage": "https://mark1russell7.github.io/docker-sqlite/",
   "bugs": {
     "url": "https://github.com/mark1russell7/docker-sqlite/issues"
   },
@@ -39,6 +39,10 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js"
     },
+    "./pure": {
+      "types": "./dist/pure.d.ts",
+      "import": "./dist/pure.js"
+    },
     "./docker-compose.yml": "./docker-compose.yml",
     "./schema/*": "./schema/*",
     "./package.json": "./package.json"
@@ -56,10 +60,10 @@
   ],
   "scripts": {
     "build": "tsc -b",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && pnpm --filter @docker-sqlite/site run typecheck",
     "clean": "rm -rf dist .tsbuildinfo",
     "prepare": "npm run build",
-    "test": "vitest run"
+    "test": "vitest run && pnpm --filter @docker-sqlite/site run test"
   },
   "dependencies": {
     "@types/sql.js": "^1.4.11",
