@@ -11,6 +11,7 @@
 ### Fixes
 
 - The package needs `sql.js` 1.14.2 or later. The browser build of `sql.js` 1.14.0 binds each parameter of `db.run` as NULL. A browser bundle of `./pure` got this bug in `execute` and `runMigrations`. The Node.js build does not have the bug.
+- A read-only call of `withConnection` on a missing database does not make a file with `sql.js` 1.15. Version 1.15 exports one page for an empty database, and the old check expected no bytes.
 
 ## 0.2.0
 

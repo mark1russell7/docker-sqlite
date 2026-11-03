@@ -68,6 +68,20 @@ export class DatabaseFileChangedError extends Error {
         this.name = "DatabaseFileChangedError";
     }
 }
+/**
+ * Gets the bytes that a database with no content exports. The bytes depend on the version of
+ * sql.js: version 1.14 exports no bytes, and version 1.15 exports one page.
+ */
+async function emptyDatabaseBytes() {
+    const SQL = await getSql();
+    const empty = new SQL.Database();
+    try {
+        return empty.export();
+    }
+    finally {
+        empty.close();
+    }
+}
 /** The bytes of a file, or null when there is no file. */
 async function readIfExists(path) {
     try {
@@ -88,9 +102,7 @@ async function saveDatabase(db, dbPath, original, options = {}) {
         return null;
     }
     const data = db.export();
-    const unchanged = original
-        ? Buffer.compare(Buffer.from(data), Buffer.from(original)) === 0
-        : data.length === 0;
+    const unchanged = sameBytes(data, original ?? (await emptyDatabaseBytes()));
     if (unchanged) {
         return original;
     }
