@@ -1044,9 +1044,48 @@ table.rows td.error {
   color: var(--muted);
 }
 
-/* The API table */
-.api-table {
-  min-width: 46rem;
+/* The API table: rows on a wide screen, and stacked cards on a phone. */
+@media (min-width: 641px) {
+  .api-table {
+    min-width: 46rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .api-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .api-table,
+  .api-table tbody,
+  .api-table tr,
+  .api-table td {
+    display: block;
+    min-width: 0;
+  }
+
+  .api-table tr {
+    padding: 0.45rem 0;
+    border-bottom: 1px solid var(--rule);
+  }
+
+  .api-table tbody tr:last-child {
+    border-bottom: 0;
+  }
+
+  .api-table td {
+    padding: 0.2rem 0.8rem;
+    border-bottom: 0;
+  }
+
+  .api-table td.live code,
+  .api-table td.live output {
+    overflow-wrap: anywhere;
+  }
 }
 
 td.live code {

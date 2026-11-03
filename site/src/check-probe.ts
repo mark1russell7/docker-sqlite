@@ -75,4 +75,12 @@ check(
 click('#presets [data-preset="app"]');
 check("the first example comes back", await until(() => rows() === "2" && states() === "1:applied 2:applied 3:applied"), `${rows()} ${states()}`);
 
+// The card clips the table, so the page has no overflow when the table is too wide. This step measures the table.
+const apiScroller = document.querySelector<HTMLElement>("#api .table-scroll");
+check(
+  "the API table fits its card at each width of the check",
+  apiScroller !== null && apiScroller.scrollWidth <= apiScroller.clientWidth,
+  `${apiScroller?.scrollWidth} in ${apiScroller?.clientWidth}`,
+);
+
 export {};
