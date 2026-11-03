@@ -57,9 +57,10 @@ async function loadDatabase(dbPath) {
  * write: it would replace those changes with the old copy of this connection.
  */
 export class DatabaseFileChangedError extends Error {
-    dbPath;
     /** A stable code for checks: `error.code === "DATABASE_FILE_CHANGED"`. */
     code = "DATABASE_FILE_CHANGED";
+    /** The path of the file that changed. */
+    dbPath;
     constructor(dbPath) {
         super(`The database file ${dbPath} changed after this connection loaded it: another connection or process wrote it. ` +
             "The save did not write, because it would replace those changes. Open a new connection and make the change again.");

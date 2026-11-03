@@ -72,12 +72,15 @@ async function loadDatabase(dbPath: string): Promise<LoadedDatabase> {
 export class DatabaseFileChangedError extends Error {
   /** A stable code for checks: `error.code === "DATABASE_FILE_CHANGED"`. */
   readonly code = "DATABASE_FILE_CHANGED";
+  /** The path of the file that changed. */
+  readonly dbPath: string;
 
-  constructor(readonly dbPath: string) {
+  constructor(dbPath: string) {
     super(
       `The database file ${dbPath} changed after this connection loaded it: another connection or process wrote it. ` +
         "The save did not write, because it would replace those changes. Open a new connection and make the change again."
     );
+    this.dbPath = dbPath;
     this.name = "DatabaseFileChangedError";
   }
 }
