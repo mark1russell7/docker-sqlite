@@ -67,7 +67,7 @@
   },
   "dependencies": {
     "@types/sql.js": "^1.4.11",
-    "sql.js": "^1.11.0"
+    "sql.js": "^1.14.2"
   },
   "devDependencies": {
     "@mark1russell7/cue": "github:mark1russell7/cue#main",

@@ -8,6 +8,10 @@
 - The site at [mark1russell7.github.io/docker-sqlite](https://mark1russell7.github.io/docker-sqlite/) runs the package on real SQLite in the browser. A visitor edits the migrations, runs them and queries the rows. The log shows the SQL of each call.
 - The `homepage` of the package is the site.
 
+### Fixes
+
+- The package needs `sql.js` 1.14.2 or later. The browser build of `sql.js` 1.14.0 binds each parameter of `db.run` as NULL. A browser bundle of `./pure` got this bug in `execute` and `runMigrations`. The Node.js build does not have the bug.
+
 ## 0.2.0
 
 ### Breaking changes

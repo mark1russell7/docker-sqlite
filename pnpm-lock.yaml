@@ -12,12 +12,12 @@ importers:
         specifier: ^1.4.11
         version: 1.4.11
       sql.js:
-        specifier: ^1.11.0
-        version: 1.14.0
+        specifier: ^1.14.2
+        version: 1.15.2
     devDependencies:
       '@mark1russell7/cue':
         specifier: github:mark1russell7/cue#main
-        version: https://codeload.github.com/mark1russell7/cue/tar.gz/fb96d136d5c451b7ee4f16e50b756b855e7320ab
+        version: https://codeload.github.com/mark1russell7/cue/tar.gz/6d5a810693592f35165299e231240bb4d0787548
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
@@ -37,8 +37,8 @@ importers:
         specifier: ^0.1.10
         version: 0.1.10
       sql.js:
-        specifier: ^1.11.0
-        version: 1.14.0
+        specifier: ^1.14.2
+        version: 1.15.2
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^1.0.2
@@ -69,10 +69,10 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/fb96d136d5c451b7ee4f16e50b756b855e7320ab':
-    resolution: {tarball: https://codeload.github.com/mark1russell7/cue/tar.gz/fb96d136d5c451b7ee4f16e50b756b855e7320ab}
-    version: 1.0.0
-    engines: {node: '>=25.0.0', npm: '>=11.0.0'}
+  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/6d5a810693592f35165299e231240bb4d0787548':
+    resolution: {tarball: https://codeload.github.com/mark1russell7/cue/tar.gz/6d5a810693592f35165299e231240bb4d0787548}
+    version: 2.1.1
+    engines: {node: '>=22'}
     hasBin: true
 
   '@mark1russell7/site-pages@0.1.10':
@@ -373,8 +373,8 @@ packages:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
 
-  sql.js@1.14.0:
-    resolution: {integrity: sha512-NXYh+kFqLiYRCNAaHD0PcbjFgXyjuolEKLMk5vRt2DgPENtF1kkNzzMlg42dUk5wIsH8MhUzsRhaUxIisoSlZQ==}
+  sql.js@1.15.2:
+    resolution: {integrity: sha512-ZmMYFsZPZWDKIJUh3A5rdnpRV3hB/r7AijwAzSzLnfv/9CSx4obUmDtA8brAjWJWjGtUVh43nIEJ+6nl6HuOUg==}
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -500,7 +500,7 @@ snapshots:
 
   '@mark1russell7/cue@1.1.0': {}
 
-  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/fb96d136d5c451b7ee4f16e50b756b855e7320ab': {}
+  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/6d5a810693592f35165299e231240bb4d0787548': {}
 
   '@mark1russell7/site-pages@0.1.10': {}
 
@@ -733,7 +733,7 @@ snapshots:
 
   source-map-js@1.2.2: {}
 
-  sql.js@1.14.0: {}
+  sql.js@1.15.2: {}
 
   stackback@0.0.2: {}
 
