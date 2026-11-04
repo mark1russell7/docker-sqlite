@@ -22,9 +22,10 @@ import type { ConnectionConfig, ConnectionCallback } from "./types.js";
  * write: it would replace those changes with the old copy of this connection.
  */
 export declare class DatabaseFileChangedError extends Error {
-    readonly dbPath: string;
     /** A stable code for checks: `error.code === "DATABASE_FILE_CHANGED"`. */
     readonly code = "DATABASE_FILE_CHANGED";
+    /** The path of the file that changed. */
+    readonly dbPath: string;
     constructor(dbPath: string);
 }
 /**

@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>docker-sqlite: SQLite migrations and queries, live in your browser</title>
+    <meta name="description" content="Real SQLite in your browser, with sql.js. Edit the migrations, run them, and query the rows with the helpers of docker-sqlite. See the SQL that each call sends." />
+    <meta name="color-scheme" content="light dark" />
+    <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317192a'/%3E%3Cellipse cx='16' cy='9' rx='9' ry='3.5' fill='%2393abff'/%3E%3Cpath d='M7 9v14c0 2 4 3.5 9 3.5s9-1.5 9-3.5V9' fill='none' stroke='%2393abff' stroke-width='2.5'/%3E%3Cpath d='M7 16c0 2 4 3.5 9 3.5s9-1.5 9-3.5' fill='none' stroke='%2336c28f' stroke-width='2.5'/%3E%3C/svg%3E" />
+    <script>
+      // The saved theme applies before the first paint, so a dark page does not flash white.
+      try {
+        const t = localStorage.getItem("docker-sqlite-theme");
+        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
+      } catch {}
+    </script>
+  </head>
+  <body>
+    <a class="skip" href="#try">Skip to the playground</a>
+    <header class="top">
+      <div class="brand">
+        <h1 class="wordmark"><span class="mark" aria-hidden="true"><i></i><i></i><i></i></span>docker-sqlite</h1>
+        <p class="lead">
+          SQLite for Node.js with no native build, with queries, migrations and a Docker web UI. This page runs real SQLite in your browser with sql.js. Edit a migration, run it,
+          and query the rows.
+        </p>
+      </div>
+      <nav class="links" aria-label="Site">
+        <a href="#try">Try it</a>
+        <a href="#how">How it works</a>
+        <a href="#api">API</a>
+        <a href="#docker">Docker</a>
+        <a href="releases/">Releases</a>
+        <a href="status/">Status</a>
+        <a href="https://github.com/mark1russell7/docker-sqlite">GitHub</a>
+        <button type="button" class="theme" id="theme" aria-label="Color theme">Theme: auto</button>
+      </nav>
+    </header>
+
+    <main>
+      <section id="try" class="core" aria-labelledby="try-title">
+        <h2 id="try-title" class="sr">Playground: migrations and queries on SQLite in your browser</h2>
+        <div class="presets-row">
+          <span class="label" id="presets-label">Examples</span>
+          <div class="chips" id="presets" role="group" aria-labelledby="presets-label"></div>
+          <span class="engine hint" id="engine" role="status">Loading SQLite (WebAssembly)…</span>
+        </div>
+
+        <div class="card query">
+          <div class="card-head">
+            <h3>Query <span class="hint">with <code>query</code> or <code>execute</code></span></h3>
+          </div>
+          <div class="chips" id="queries" role="group" aria-label="Sample queries"></div>
+          <label class="label" for="sql">SQL</label>
+          <textarea id="sql" class="mono" rows="4" spellcheck="false" autocomplete="off" autocapitalize="off"></textarea>
+          <div class="query-row">
+            <div class="params">
+              <label class="label" for="params">Parameters <span class="hint">a JSON array for the <code>?</code> marks</span></label>
+              <input id="params" class="mono" type="text" spellcheck="false" autocomplete="off" autocapitalize="off" />
+            </div>
+            <div class="mode">
+              <span class="label" id="mode-label">Function</span>
+              <div class="seg" id="mode" role="radiogroup" aria-labelledby="mode-label">
+                <button type="button" role="radio" data-mode="query" aria-checked="true">query</button>
+                <button type="button" role="radio" data-mode="execute" aria-checked="false">execute</button>
+              </div>
+            </div>
+            <button type="button" class="primary run" id="run-query" disabled>Run</button>
+          </div>
+          <p class="hint">Ctrl+Enter in the SQL box also runs the query.</p>
+          <div class="result" id="result-box">
+            <div class="result-head">
+              <span class="label">Result</span>
+              <output class="hint mono" id="result-meta" data-ok="pending">No result yet.</output>
+            </div>
+            <div class="table-scroll result-scroll">
+              <table class="rows" id="result"><thead></thead><tbody></tbody></table>
+            </div>
+          </div>
+        </div>
+
+        <div class="card migrations">
+          <div class="card-head">
+            <h3>Migrations <span class="hint">of <code>runMigrations</code></span></h3>
+            <p class="hint" id="mig-summary" role="status"></p>
+          </div>
+          <ol class="mig-list" id="migrations" aria-label="Migrations"></ol>
+          <button type="button" class="chip add" id="add-migration">Add a migration</button>
+          <ul class="problems" id="mig-problems" role="status" aria-live="polite"></ul>
+          <div class="actions">
+            <button type="button" class="primary" id="run-migrations" disabled>Run the migrations</button>
+            <button type="button" id="rollback" disabled>Roll back the last</button>
+            <button type="button" id="reset" disabled>New empty database</button>
+            <button type="button" id="download" disabled>Download the .db file</button>
+          </div>
+          <p class="hint">
+            The package knows a migration by its version. A change to an applied migration does not run again: roll back, then run the migrations.
+          </p>
+        </div>
+
+        <div class="card log-card">
+          <div class="log-col">
+            <div class="card-head">
+              <h3>Log <span class="hint">each call, and the SQL that it sent to SQLite</span></h3>
+            </div>
+            <ol class="log" id="log" aria-label="The calls, the newest first"></ol>
+          </div>
+          <div class="db-col">
+            <div class="card-head">
+              <h3>Tables</h3>
+              <p class="hint">Select a table to query it.</p>
+            </div>
+            <ul class="tables" id="tables" aria-label="The tables of the database"></ul>
+            <div class="card-head">
+              <h3>The <code>_migrations</code> table</h3>
+              <p class="hint">The record of the applied migrations.</p>
+            </div>
+            <div class="table-scroll mig-scroll">
+              <table class="rows" id="mig-table"><thead></thead><tbody></tbody></table>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="how" class="section" aria-labelledby="how-title">
+        <div class="section-head">
+          <h2 id="how-title">How it works</h2>
+        </div>
+        <ol class="how">
+          <li class="card"><span class="step">1</span><h3>SQLite in WebAssembly</h3><p>The package uses sql.js, so it needs no native build. This page uses the same sql.js, with its WebAssembly file from this site.</p></li>
+          <li class="card"><span class="step">2</span><h3>Migrations in savepoints</h3><p><code>runMigrations</code> applies each pending version in a savepoint, with its row in <code>_migrations</code>. A failure keeps no part of the migration.</p></li>
+          <li class="card"><span class="step">3</span><h3>Queries with parameters</h3><p><code>query</code> gives the columns and the rows as objects. <code>execute</code> binds the parameters to one statement, and gives the number of changes.</p></li>
+          <li class="card"><span class="step">4</span><h3>Files on Node.js</h3><p><code>withConnection</code> loads the file, runs your code and saves the file only when it changed, with a write to a temporary file and a rename.</p></li>
+        </ol>
+        <p class="hint">
+          The entry <code>@mark1russell7/docker-sqlite/pure</code> has the queries and the migrations. It imports no Node.js module, so this page bundles it. The log shows the SQL of
+          each call: the page gives the package a database that records each SQL text.
+        </p>
+      </section>
+
+      <section id="api" class="section" aria-labelledby="api-title">
+        <div class="section-head">
+          <h2 id="api-title">API</h2>
+          <p class="hint">The page calls each example with the package on a new database, and shows the result.</p>
+        </div>
+        <div class="card table-card">
+          <div class="table-scroll">
+            <table class="api-table">
+              <thead>
+                <tr><th scope="col">Export</th><th scope="col">What it does</th><th scope="col">Live example</th></tr>
+              </thead>
+              <tbody id="api-rows"></tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section id="docker" class="section" aria-labelledby="docker-title">
+        <div class="section-head">
+          <h2 id="docker-title">Docker commands</h2>
+          <p class="hint">
+            The shipped <code>docker-compose.yml</code> starts sqlite-web, a web UI for one database file, on <code>127.0.0.1:8080</code>. The UI can read and write the file and has no
+            login, so the port opens only on the loopback address.
+          </p>
+        </div>
+        <div class="card cmds">
+          <h3>Open the database of this page</h3>
+          <div class="codeblock">
+            <pre><code id="open-cmds">mkdir -p data
+mv ~/Downloads/playground.db data/cli.db
+docker compose up -d
+# Open http://localhost:8080</code></pre>
+            <button type="button" class="copy" data-copy="open-cmds">Copy</button>
+          </div>
+          <h3>Other settings</h3>
+          <div class="codeblock">
+            <pre><code id="env-cmds">SQLITE_PORT=8081 SQLITE_DB_PATH=./db SQLITE_DB_NAME=app.db docker compose up -d</code></pre>
+            <button type="button" class="copy" data-copy="env-cmds">Copy</button>
+          </div>
+          <h3>Logs and stop</h3>
+          <div class="codeblock">
+            <pre><code id="docker-cmds">docker compose logs -f sqlite-web
+docker compose down</code></pre>
+            <button type="button" class="copy" data-copy="docker-cmds">Copy</button>
+          </div>
+          <h3>From your project, after the install</h3>
+          <div class="codeblock">
+            <pre><code id="npm-cmds">docker compose -f node_modules/@mark1russell7/docker-sqlite/docker-compose.yml up -d</code></pre>
+            <button type="button" class="copy" data-copy="npm-cmds">Copy</button>
+          </div>
+        </div>
+      </section>
+
+      <section id="install" class="section" aria-labelledby="install-title">
+        <div class="section-head">
+          <h2 id="install-title">Install from npm</h2>
+        </div>
+        <div class="card install">
+          <div class="codeblock">
+            <pre><code id="install-cmd">npm install @mark1russell7/docker-sqlite</code></pre>
+            <button type="button" class="copy" data-copy="install-cmd">Copy</button>
+          </div>
+          <div class="codeblock">
+            <pre><code id="sample">import { createMigration, execute, query, runMigrations, withConnection } from "@mark1russell7/docker-sqlite";
+
+const migrations = [
+  createMigration(1, "Create the users table", "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)", "DROP TABLE users"),
+];
+
+await withConnection({ dbPath: "./data/app.db" }, (db) =&gt; {
+  runMigrations(db, migrations);
+  execute(db, "INSERT INTO users (name) VALUES (?)", ["Ada"]);
+  console.log(query(db, "SELECT * FROM users").rows);
+});</code></pre>
+            <button type="button" class="copy" data-copy="sample">Copy</button>
+          </div>
+          <p class="hint">The package needs Node.js 22 or later. The web UI needs Docker with Compose. In a browser, import the same functions from <code>@mark1russell7/docker-sqlite/pure</code>.</p>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <p>MIT license. <a href="https://github.com/mark1russell7/docker-sqlite">github.com/mark1russell7/docker-sqlite</a> · <span id="build"></span></p>
+    </footer>
+
+    <script type="module" src="/src/main.ts"></script>
+  </body>
+</html>

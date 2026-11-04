@@ -1,5 +1,18 @@
 # Change history
 
+## 0.2.1
+
+### New
+
+- The entry `@mark1russell7/docker-sqlite/pure` has the query functions, the migrations and their types. It imports no Node.js module, so a browser bundle can use it with sql.js. The main entry does not change.
+- The site at [mark1russell7.github.io/docker-sqlite](https://mark1russell7.github.io/docker-sqlite/) runs the package on real SQLite in the browser. A visitor edits the migrations, runs them and queries the rows. The log shows the SQL of each call.
+- The `homepage` of the package is the site.
+
+### Fixes
+
+- The package needs `sql.js` 1.14.2 or later. The browser build of `sql.js` 1.14.0 binds each parameter of `db.run` as NULL. A browser bundle of `./pure` got this bug in `execute` and `runMigrations`. The Node.js build does not have the bug.
+- A read-only call of `withConnection` on a missing database does not make a file with `sql.js` 1.15. Version 1.15 exports one page for an empty database, and the old check expected no bytes.
+
 ## 0.2.0
 
 ### Breaking changes

@@ -7,6 +7,8 @@
 
 > Reusable SQLite setup with TypeScript utilities for connection management, queries, and migrations using sql.js (SQLite compiled to WASM).
 
+**[Try it in your browser](https://mark1russell7.github.io/docker-sqlite/).** The site runs real SQLite with sql.js. Edit the migrations, run them, and query the rows with the functions of this package. The log shows the SQL of each call.
+
 ```bash
 npm install @mark1russell7/docker-sqlite
 ```
@@ -221,6 +223,22 @@ sequenceDiagram
 ```bash
 npm install @mark1russell7/docker-sqlite
 ```
+
+### In a browser
+
+The entry `@mark1russell7/docker-sqlite/pure` has the query functions and the migrations. It imports no Node.js module, so a browser bundle can use it with sql.js:
+
+```typescript
+import initSqlJs from "sql.js";
+import { createMigration, query, runMigrations } from "@mark1russell7/docker-sqlite/pure";
+
+const SQL = await initSqlJs({ locateFile: (file) => `/assets/${file}` });
+const db = new SQL.Database();
+runMigrations(db, [createMigration(1, "Create the users table", "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")]);
+console.log(query(db, "SELECT name FROM sqlite_master WHERE type = 'table'").rows);
+```
+
+`withConnection` and `createConnection` read and write files, so only the main entry has them.
 
 ### Requirements
 
