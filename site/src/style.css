@@ -1,12 +1,5 @@
 /* The style of the site, with the look of the other sites of mark1russell7. Green is applied, blue is a value or a query, red is a problem. */
 :root {
-  color-scheme: light;
-  --bg: #f4f3ee;
-  --surface: #ffffff;
-  --sunken: #eceae3;
-  --ink: #191b23;
-  --muted: #5a5d6c;
-  --rule: #dad7cd;
   --some: #0f7f56;
   --some-bg: #dcf2e8;
   --none: #6656b0;
@@ -15,22 +8,10 @@
   --value-bg: #e2e8fb;
   --error: #b8352a;
   --error-bg: #fbe4df;
-  --focus: #2346c4;
-  --font: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  --mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-  --radius: 10px;
-  --width: 75rem;
 }
 
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
-    color-scheme: dark;
-    --bg: #0f1117;
-    --surface: #171a23;
-    --sunken: #1f2330;
-    --ink: #e8e9ef;
-    --muted: #a0a4b6;
-    --rule: #2e3345;
     --some: #4fd1a1;
     --some-bg: #15352b;
     --none: #b6a9f2;
@@ -39,18 +20,10 @@
     --value-bg: #1d2747;
     --error: #ff8f80;
     --error-bg: #3e1f1b;
-    --focus: #93abff;
   }
 }
 
 :root[data-theme="dark"] {
-  color-scheme: dark;
-  --bg: #0f1117;
-  --surface: #171a23;
-  --sunken: #1f2330;
-  --ink: #e8e9ef;
-  --muted: #a0a4b6;
-  --rule: #2e3345;
   --some: #4fd1a1;
   --some-bg: #15352b;
   --none: #b6a9f2;
@@ -59,26 +32,6 @@
   --value-bg: #1d2747;
   --error: #ff8f80;
   --error-bg: #3e1f1b;
-  --focus: #93abff;
-}
-
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  margin: 0;
-  background: var(--bg);
-  color: var(--ink);
-  font-family: var(--font);
-  font-size: 1rem;
-  line-height: 1.5;
 }
 
 a {
@@ -100,11 +53,6 @@ li code {
   background: var(--sunken);
   border-radius: 4px;
   padding: 0 0.25em;
-}
-
-:focus-visible {
-  outline: 2px solid var(--focus);
-  outline-offset: 2px;
 }
 
 button,
@@ -154,55 +102,7 @@ input[aria-invalid="true"] {
   box-shadow: 0 0 0 2px var(--error-bg);
 }
 
-.sr {
-  position: absolute;
-  width: 1px;
-  height: 1px;
-  overflow: hidden;
-  clip: rect(0 0 0 0);
-  white-space: nowrap;
-}
-
-.skip {
-  position: absolute;
-  left: 8px;
-  top: -40px;
-  background: var(--surface);
-  padding: 0.4rem 0.8rem;
-  border-radius: 8px;
-  z-index: 10;
-}
-
-.skip:focus {
-  top: 8px;
-}
-
 /* The header */
-.top {
-  max-width: var(--width);
-  margin: 0 auto;
-  padding: 1.1rem 16px 0.6rem;
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: 0.5rem 2rem;
-}
-
-.brand {
-  flex: 1 1 28rem;
-  min-width: 0;
-}
-
-.wordmark {
-  margin: 0;
-  font-size: 1.75rem;
-  letter-spacing: -0.02em;
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-}
-
 .mark {
   display: inline-flex;
   gap: 6px;
@@ -215,40 +115,6 @@ input[aria-invalid="true"] {
   width: 5px;
   border-radius: 3px;
   background: var(--some);
-}
-
-.lead {
-  margin: 0.35rem 0 0;
-  color: var(--muted);
-  max-width: 46rem;
-}
-
-.links {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 0.25rem 1rem;
-  font-size: 0.95rem;
-}
-
-.links a {
-  text-decoration: none;
-}
-
-.links a:hover {
-  text-decoration: underline;
-}
-
-.theme {
-  min-height: 2rem;
-  padding: 0.15rem 0.6rem;
-  font-size: 0.875rem;
-}
-
-main {
-  max-width: var(--width);
-  margin: 0 auto;
-  padding: 0 16px;
 }
 
 .card {
@@ -439,15 +305,6 @@ td.live output {
 .install h3 {
   margin: 0;
   font-size: 1.05rem;
-}
-
-.foot {
-  max-width: var(--width);
-  margin: 3rem auto 0;
-  padding: 16px;
-  border-top: 1px solid var(--rule);
-  color: var(--muted);
-  font-size: 0.875rem;
 }
 
 /* The mark: three disks of a database */
