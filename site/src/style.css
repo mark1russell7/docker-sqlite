@@ -689,6 +689,12 @@ table.rows td.empty {
   font-family: var(--font);
 }
 
+/* The columns of this table are known, so its text wraps and the table fits a phone. */
+.mig-scroll table.rows th,
+.mig-scroll table.rows td {
+  white-space: normal;
+}
+
 table.rows td.big {
   font-size: 1.6rem;
   font-weight: 700;
