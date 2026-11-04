@@ -7,13 +7,6 @@
     <meta name="description" content="Real SQLite in your browser, with sql.js. Edit the migrations, run them, and query the rows with the helpers of docker-sqlite. See the SQL that each call sends." />
     <meta name="color-scheme" content="light dark" />
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='7' fill='%2317192a'/%3E%3Cellipse cx='16' cy='9' rx='9' ry='3.5' fill='%2393abff'/%3E%3Cpath d='M7 9v14c0 2 4 3.5 9 3.5s9-1.5 9-3.5V9' fill='none' stroke='%2393abff' stroke-width='2.5'/%3E%3Cpath d='M7 16c0 2 4 3.5 9 3.5s9-1.5 9-3.5' fill='none' stroke='%2336c28f' stroke-width='2.5'/%3E%3C/svg%3E" />
-    <script>
-      // The saved theme applies before the first paint, so a dark page does not flash white.
-      try {
-        const t = localStorage.getItem("docker-sqlite-theme");
-        if (t === "light" || t === "dark") document.documentElement.dataset.theme = t;
-      } catch {}
-    </script>
   </head>
   <body>
     <a class="skip" href="#try">Skip to the playground</a>

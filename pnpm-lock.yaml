@@ -17,7 +17,7 @@ importers:
     devDependencies:
       '@mark1russell7/cue':
         specifier: github:mark1russell7/cue#main
-        version: https://codeload.github.com/mark1russell7/cue/tar.gz/6d5a810693592f35165299e231240bb4d0787548
+        version: https://codeload.github.com/mark1russell7/cue/tar.gz/56c0418be8bb4620b141c3694df260d79220613f
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
@@ -34,8 +34,8 @@ importers:
         specifier: workspace:*
         version: link:..
       '@mark1russell7/site-pages':
-        specifier: ^0.1.10
-        version: 0.1.10
+        specifier: ^0.2.0
+        version: 0.2.0
       sql.js:
         specifier: ^1.14.2
         version: 1.15.2
@@ -69,14 +69,14 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/6d5a810693592f35165299e231240bb4d0787548':
-    resolution: {tarball: https://codeload.github.com/mark1russell7/cue/tar.gz/6d5a810693592f35165299e231240bb4d0787548}
+  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/56c0418be8bb4620b141c3694df260d79220613f':
+    resolution: {tarball: https://codeload.github.com/mark1russell7/cue/tar.gz/56c0418be8bb4620b141c3694df260d79220613f}
     version: 2.1.1
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/site-pages@0.1.10':
-    resolution: {integrity: sha512-dcMPqlWsxJ+fRvl5cZH01a+/94ujk5ogRfg5puO2JC7pvE5jq1IV48UrcbtP+zcS5r9zMUbvUVz74E9xQYY8FQ==}
+  '@mark1russell7/site-pages@0.2.0':
+    resolution: {integrity: sha512-dahr/WG5PFj/zrcTk/NvufB6N3Tswc60vvGregftq9nraEgeHhaEr+s0zr/gbcOrK7Cz2EHiyO5F2inHc2utYw==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -500,9 +500,9 @@ snapshots:
 
   '@mark1russell7/cue@2.1.1': {}
 
-  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/6d5a810693592f35165299e231240bb4d0787548': {}
+  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/56c0418be8bb4620b141c3694df260d79220613f': {}
 
-  '@mark1russell7/site-pages@0.1.10': {}
+  '@mark1russell7/site-pages@0.2.0': {}
 
   '@oxc-project/types@0.153.0': {}
 
