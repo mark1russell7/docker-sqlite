@@ -14,7 +14,7 @@
   },
   "dependencies": {
     "@mark1russell7/docker-sqlite": "workspace:*",
-    "@mark1russell7/site-pages": "^0.2.0",
+    "@mark1russell7/site-pages": "^0.3.4",
     "sql.js": "^1.14.2"
   },
   "devDependencies": {
