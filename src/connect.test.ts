@@ -162,6 +162,63 @@ describe("createConnection", () => {
     expect(await rowsOf(dbPath)).toEqual([{ x: 1 }, { x: 2 }]);
   });
 
+  it("makes the withConnection call refuse its old copy after a save in its callback", async () => {
+    const dbPath = tempDb();
+    await seed(dbPath);
+    const handle = await createConnection({ dbPath });
+    execute(handle.db, "INSERT INTO t VALUES (3)");
+
+    // The save in the callback writes rows 1 and 3. Before, the withConnection call then wrote its copy (rows 1 and 2)
+    // over the file with no check, and row 3 was lost with no error.
+    const outcome = await withConnection({ dbPath }, async (db) => {
+      execute(db, "INSERT INTO t VALUES (2)");
+      await handle.save();
+    }).catch((caught: unknown) => caught);
+    handle.db.close();
+
+    expect(outcome).toBeInstanceOf(DatabaseFileChangedError);
+    expect(await rowsOf(dbPath)).toEqual([{ x: 1 }, { x: 3 }]);
+  });
+
+  it("queues a save that a withConnection callback started and that runs after the callback", async () => {
+    const dbPath = tempDb();
+    await seed(dbPath);
+    const handle = await createConnection({ dbPath });
+    execute(handle.db, "INSERT INTO t VALUES (3)");
+
+    // The callback starts work that saves later, after the callback returned
+    let fire!: () => void;
+    const fired = new Promise<void>((resolve) => (fire = resolve));
+    let later!: Promise<unknown>;
+    await withConnection({ dbPath }, () => {
+      later = (async () => {
+        await fired;
+        await handle.save();
+      })().catch((caught: unknown) => caught);
+    });
+
+    let release!: () => void;
+    const gate = new Promise<void>((resolve) => (release = resolve));
+    let started!: () => void;
+    const inCallback = new Promise<void>((resolve) => (started = resolve));
+    const running = withConnection({ dbPath }, async (db) => {
+      started();
+      execute(db, "INSERT INTO t VALUES (2)");
+      await gate;
+    });
+    await inCallback;
+    fire();
+    await new Promise((resolve) => setTimeout(resolve, 50));
+    release();
+    await running;
+
+    // Before, the late save ran at once, beside the second call, and that call then wrote over row 3 with no error.
+    // Now the save waits in the queue for the second call, and it refuses its old copy.
+    expect(await later).toBeInstanceOf(DatabaseFileChangedError);
+    handle.db.close();
+    expect(await rowsOf(dbPath)).toEqual([{ x: 1 }, { x: 2 }]);
+  });
+
   it("waits for a withConnection call that runs, and then refuses its old copy", async () => {
     const dbPath = tempDb();
     await seed(dbPath);

@@ -1,5 +1,15 @@
 # Change history
 
+## 0.3.0
+
+### Breaking changes
+
+- `withConnection` does not write over a file that changed during its callback. When the callback changed the database and the file changed, the call throws a `DatabaseFileChangedError` and writes nothing. Before, it wrote its old copy over the file, and the other changes were lost with no error. An example is a `save()` of `createConnection` in the callback for the same file. Another process can also write the file. To continue, use `withConnection` again and make the change again.
+
+### Corrections
+
+- A `save()` of `createConnection` skips the queue of the file only while a `withConnection` call for the same file is active. Work that the callback starts can save after the callback ended, for example in a timer. Before, such a save also skipped the queue, at the same time as the next `withConnection` call for the same file. That call then wrote over the save. In this version, the save waits in the queue of the file.
+
 ## 0.2.1
 
 ### New
