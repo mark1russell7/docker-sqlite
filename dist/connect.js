@@ -187,6 +187,10 @@ const fileQueues = new Map();
  * The queue keys that the current call holds. A `save` of `createConnection` in a callback of
  * `withConnection` for the same file runs at once: in the queue, it would wait for the
  * callback, and the callback waits for it.
+ *
+ * The callback gives this store also to work that ends after the callback, for example a timer.
+ * A key counts only while its call runs. Before, a save of such work ran at once also after the
+ * call ended, beside the next call for the same file, and that call wrote over the save.
  */
 const heldQueues = new AsyncLocalStorage();
 /**
@@ -202,12 +206,20 @@ async function inFileQueue(dbPath, task, options = {}) {
         return task();
     }
     const key = fileQueueKey(dbPath);
-    const held = heldQueues.getStore();
-    if (options.reentrant && held?.has(key)) {
+    const held = (heldQueues.getStore() ?? []).filter((item) => item.active);
+    if (options.reentrant && held.some((item) => item.key === key)) {
         return task();
     }
-    const holding = new Set(held).add(key);
-    const start = () => heldQueues.run(holding, task);
+    const hold = { key, active: true };
+    const holding = [...held, hold];
+    const start = () => heldQueues.run(holding, async () => {
+        try {
+            return await task();
+        }
+        finally {
+            hold.active = false;
+        }
+    });
     const previous = fileQueues.get(key) ?? Promise.resolve();
     const run = previous.then(start, start);
     const tail = run.then(() => undefined, () => undefined);
@@ -223,6 +235,10 @@ async function inFileQueue(dbPath, task, options = {}) {
 }
 /**
  * Execute a callback with a SQLite connection, ensuring proper cleanup and persistence.
+ *
+ * The call throws a `DatabaseFileChangedError` and does not write when the database changed and
+ * the file changed during the callback, for example by a `save` of `createConnection` in the
+ * callback or by another process. Before, it wrote its old copy over those changes.
  *
  * @example
  * ```typescript
@@ -246,8 +262,9 @@ export async function withConnection(config, fn) {
         const { db, original } = await loadDatabase(config.dbPath);
         try {
             const result = await fn(db);
-            // Save changes back to file (only when there are changes)
-            await saveDatabase(db, config.dbPath, original);
+            // Save changes back to file (only when there are changes). A save of `createConnection` in
+            // the callback can write the file: then this save refuses its old copy, as that save does.
+            await saveDatabase(db, config.dbPath, original, { refuseChangedFile: true });
             return result;
         }
         finally {

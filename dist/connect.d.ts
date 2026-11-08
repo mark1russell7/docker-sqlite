@@ -36,6 +36,10 @@ export declare function fileQueueKey(dbPath: string, platform?: NodeJS.Platform)
 /**
  * Execute a callback with a SQLite connection, ensuring proper cleanup and persistence.
  *
+ * The call throws a `DatabaseFileChangedError` and does not write when the database changed and
+ * the file changed during the callback, for example by a `save` of `createConnection` in the
+ * callback or by another process. Before, it wrote its old copy over those changes.
+ *
  * @example
  * ```typescript
  * const result = await withConnection(

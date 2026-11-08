@@ -209,12 +209,23 @@ async function syncDirectory(path: string): Promise<void> {
  */
 const fileQueues = new Map<string, Promise<unknown>>();
 
+/** One queue key that a call holds, while the call runs. */
+interface HeldQueue {
+  readonly key: string;
+  /** False after the call ended. */
+  active: boolean;
+}
+
 /**
  * The queue keys that the current call holds. A `save` of `createConnection` in a callback of
  * `withConnection` for the same file runs at once: in the queue, it would wait for the
  * callback, and the callback waits for it.
+ *
+ * The callback gives this store also to work that ends after the callback, for example a timer.
+ * A key counts only while its call runs. Before, a save of such work ran at once also after the
+ * call ended, beside the next call for the same file, and that call wrote over the save.
  */
-const heldQueues = new AsyncLocalStorage<ReadonlySet<string>>();
+const heldQueues = new AsyncLocalStorage<readonly HeldQueue[]>();
 
 /**
  * The queue key of a file. Windows file names do not depend on case, so the key is in lower
@@ -234,12 +245,20 @@ async function inFileQueue<T>(
     return task();
   }
   const key = fileQueueKey(dbPath);
-  const held = heldQueues.getStore();
-  if (options.reentrant && held?.has(key)) {
+  const held = (heldQueues.getStore() ?? []).filter((item) => item.active);
+  if (options.reentrant && held.some((item) => item.key === key)) {
     return task();
   }
-  const holding = new Set(held).add(key);
-  const start = (): Promise<T> => heldQueues.run(holding, task);
+  const hold: HeldQueue = { key, active: true };
+  const holding = [...held, hold];
+  const start = (): Promise<T> =>
+    heldQueues.run(holding, async () => {
+      try {
+        return await task();
+      } finally {
+        hold.active = false;
+      }
+    });
   const previous = fileQueues.get(key) ?? Promise.resolve();
   const run = previous.then(start, start);
   const tail = run.then(
@@ -258,6 +277,10 @@ async function inFileQueue<T>(
 
 /**
  * Execute a callback with a SQLite connection, ensuring proper cleanup and persistence.
+ *
+ * The call throws a `DatabaseFileChangedError` and does not write when the database changed and
+ * the file changed during the callback, for example by a `save` of `createConnection` in the
+ * callback or by another process. Before, it wrote its old copy over those changes.
  *
  * @example
  * ```typescript
@@ -285,8 +308,9 @@ export async function withConnection<T>(
 
     try {
       const result = await fn(db);
-      // Save changes back to file (only when there are changes)
-      await saveDatabase(db, config.dbPath, original);
+      // Save changes back to file (only when there are changes). A save of `createConnection` in
+      // the callback can write the file: then this save refuses its old copy, as that save does.
+      await saveDatabase(db, config.dbPath, original, { refuseChangedFile: true });
       return result;
     } finally {
       db.close();
