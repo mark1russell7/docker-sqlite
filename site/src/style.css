@@ -822,6 +822,7 @@ table.rows td.error {
 .trace pre {
   margin: 0;
   background: var(--sunken);
+  --scroll-cue-bg: var(--sunken);
   border-radius: 6px;
   padding: 4px 8px;
   overflow-x: auto;

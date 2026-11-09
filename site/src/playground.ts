@@ -299,7 +299,8 @@ export class Playground {
                       "li",
                       { "data-method": t.method },
                       h("span", { class: "method" }, t.method),
-                      h("pre", {}, h("code", {}, t.sql.trim())),
+                      // The page makes these blocks after the build, so `site-pages cue` does not reach them: they get the cue here.
+                      h("pre", { class: "scroll-cue", tabindex: "0" }, h("code", {}, t.sql.trim())),
                       t.params.length === 0 ? null : h("span", { class: "bound" }, `params ${JSON.stringify(t.params)}`),
                     ),
                   ),
