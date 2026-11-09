@@ -5,6 +5,7 @@ import { message } from "./demo.ts";
 import { Playground } from "./playground.ts";
 import { loadSql } from "./sqlite.ts";
 import "@mark1russell7/site-pages/shell.css";
+import "@mark1russell7/site-pages/scroll-cue.css";
 import "./style.css";
 
 setupTheme(byId<HTMLButtonElement>("theme"), "docker-sqlite-theme");
