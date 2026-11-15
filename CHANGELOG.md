@@ -1,5 +1,11 @@
 # Change history
 
+## 0.3.1
+
+### Corrections
+
+- The package does not contain `dist/.tsbuildinfo`. This file is the build cache of TypeScript. It is not for users. In 0.3.0 it added 43 KB of file names from the `node_modules` folder of the build.
+
 ## 0.3.0
 
 ### Breaking changes
