@@ -17,7 +17,7 @@ importers:
     devDependencies:
       '@mark1russell7/cue':
         specifier: github:mark1russell7/cue#main
-        version: https://codeload.github.com/mark1russell7/cue/tar.gz/9bcc6320542b1cc94a1cfebd06e4c06b89c52839
+        version: https://codeload.github.com/mark1russell7/cue/tar.gz/ea4e07202d9cbedd41f811c8365ee8184be46b23
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
@@ -37,8 +37,8 @@ importers:
         specifier: workspace:*
         version: link:..
       '@mark1russell7/site-pages':
-        specifier: ^0.4.6
-        version: 0.4.8
+        specifier: ^0.5.0
+        version: 0.5.0
       sql.js:
         specifier: ^1.14.2
         version: 1.15.2
@@ -100,22 +100,22 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/9bcc6320542b1cc94a1cfebd06e4c06b89c52839':
-    resolution: {tarball: https://codeload.github.com/mark1russell7/cue/tar.gz/9bcc6320542b1cc94a1cfebd06e4c06b89c52839}
+  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/ea4e07202d9cbedd41f811c8365ee8184be46b23':
+    resolution: {tarball: https://codeload.github.com/mark1russell7/cue/tar.gz/ea4e07202d9cbedd41f811c8365ee8184be46b23}
     version: 2.1.4
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/rigor-generators@0.1.6':
-    resolution: {integrity: sha512-eSuVS6nNd2H63dMrfleop+ffBtNd8Ua0/JrcUWUMxf2jHWw432fSwJ+aSa4ecAYq1Pa2ReCfwpqFUP4MII5+GA==}
+  '@mark1russell7/rigor-generators@0.1.16':
+    resolution: {integrity: sha512-C94Q4C31aZ8UXx1R0JSBV7DiQFl5tVpbFxHxHzHaSqr3dTgmCkEvLrvlUV8/0/GZqPhQYG9cbX6GOlqfRj/h4g==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/rigor-statistics@0.1.15':
-    resolution: {integrity: sha512-dxr3UiAs64JXV3trXCaTRTesHqXEMUoVvDGIyrz0BWsAZERA/lrIQNUATFAuqnAWzdmbHUyi/5nzA4uPXTSTJw==}
+  '@mark1russell7/rigor-statistics@0.2.4':
+    resolution: {integrity: sha512-0L075rT+toD6edxEwDdZHiFzHP4+dJrI64Pw5gh9V33VwCfNRUMQY90AooDpMgVcC9cuxHNXegDLSOYU9ZMIlA==}
     engines: {node: '>=22'}
 
-  '@mark1russell7/site-pages@0.4.8':
-    resolution: {integrity: sha512-uN7SV7VxrsMyH7/cPOUClFOnJhw24S2+qVaMIoNK+7AtJe3FB4l5qN2NowKAYvYgLcDpY4gUBlw9meJ6/Gq2pQ==}
+  '@mark1russell7/site-pages@0.5.0':
+    resolution: {integrity: sha512-sGDFRCr2fIRarRV4FCoDvfYBSOln134N9ApuwNMKXYtiiXpPv8LMeUUB/19QQU7fJDKWGZgqPSAJZ/+RA7p63A==}
     engines: {node: '>=22'}
     hasBin: true
 
@@ -617,17 +617,17 @@ snapshots:
 
   '@mark1russell7/cue@2.1.4': {}
 
-  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/9bcc6320542b1cc94a1cfebd06e4c06b89c52839': {}
+  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/ea4e07202d9cbedd41f811c8365ee8184be46b23': {}
 
-  '@mark1russell7/rigor-generators@0.1.6': {}
+  '@mark1russell7/rigor-generators@0.1.16': {}
 
-  '@mark1russell7/rigor-statistics@0.1.15':
+  '@mark1russell7/rigor-statistics@0.2.4':
     dependencies:
-      '@mark1russell7/rigor-generators': 0.1.6
+      '@mark1russell7/rigor-generators': 0.1.16
 
-  '@mark1russell7/site-pages@0.4.8':
+  '@mark1russell7/site-pages@0.5.0':
     dependencies:
-      '@mark1russell7/rigor-statistics': 0.1.15
+      '@mark1russell7/rigor-statistics': 0.2.4
 
   '@oxc-project/types@0.153.0': {}
 
