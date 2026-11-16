@@ -1,5 +1,13 @@
 # Change history
 
+## 0.3.2
+
+### Corrections
+
+- `withConnection`, `createConnection` and `save()` refuse a file in WAL mode with a side file: the WAL file (`<path>-wal`) or the shared-memory file (`<path>-shm`). They throw a `WalFileInUseError` (`code: "WAL_FILE_IN_USE"`) and do not read or write the file. Another connection, for example of `node:sqlite`, has such a file open, or it stopped before its close. sql.js reads only the main file. Before, a read did not see the rows of the WAL file. A write reported success, but the next checkpoint of the other connection wrote over it, and the row was lost with no error. The error names the path, the side file and the next step: use a driver that reads the WAL file, or close the other connection.
+- A file in WAL mode with no side files works as before. SQLite removes both side files when the last connection closes cleanly. A file in rollback-journal mode works as before.
+- Limits of the check: the check and the save are two steps, and sql.js takes no lock. A connection that ran no statement yet has no side file, so the check does not see it.
+
 ## 0.3.1
 
 ### Corrections

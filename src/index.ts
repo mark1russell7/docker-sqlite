@@ -38,7 +38,7 @@ export type {
 } from "./types.js";
 
 // Connection utilities
-export { withConnection, createConnection, DatabaseFileChangedError } from "./connect.js";
+export { withConnection, createConnection, DatabaseFileChangedError, WalFileInUseError } from "./connect.js";
 
 // Query utilities
 export {
