@@ -29,6 +29,22 @@ export declare class DatabaseFileChangedError extends Error {
     constructor(dbPath: string);
 }
 /**
+ * The error of `withConnection`, `createConnection` and `save` for a file in WAL mode with a WAL
+ * file (`<path>-wal`) or a shared-memory file (`<path>-shm`). Another connection, for example of
+ * `node:sqlite`, has the file open, or it stopped before its close. sql.js reads only the main
+ * file. Thus it reads old rows, and the other connection writes over its save. The call does not
+ * read or write the file.
+ */
+export declare class WalFileInUseError extends Error {
+    /** A stable code for checks: `error.code === "WAL_FILE_IN_USE"`. */
+    readonly code = "WAL_FILE_IN_USE";
+    /** The path of the database file. */
+    readonly dbPath: string;
+    /** The path of the side file that the check found: `<path>-wal` or `<path>-shm`. */
+    readonly sideFile: string;
+    constructor(dbPath: string, sideFile: string);
+}
+/**
  * The queue key of a file. Windows file names do not depend on case, so the key is in lower
  * case there. Before, two spellings of one file had two queues, and their calls ran at once.
  */

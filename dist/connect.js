@@ -4,7 +4,7 @@
 import initSqlJs, {} from "sql.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
-import { readFile, mkdir, open, rename, unlink } from "node:fs/promises";
+import { readFile, mkdir, open, rename, stat, unlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 let sqlPromise = null;
 /**
@@ -26,6 +26,7 @@ async function loadDatabase(dbPath) {
     }
     try {
         const buffer = await readFile(dbPath);
+        await refuseLiveWal(dbPath, buffer);
         // sql.js keeps the array that it gets and writes into it: give it a copy, so `original`
         // keeps the bytes of the file
         return { db: new SQL.Database(new Uint8Array(buffer)), original: buffer };
@@ -69,6 +70,73 @@ export class DatabaseFileChangedError extends Error {
     }
 }
 /**
+ * The error of `withConnection`, `createConnection` and `save` for a file in WAL mode with a WAL
+ * file (`<path>-wal`) or a shared-memory file (`<path>-shm`). Another connection, for example of
+ * `node:sqlite`, has the file open, or it stopped before its close. sql.js reads only the main
+ * file. Thus it reads old rows, and the other connection writes over its save. The call does not
+ * read or write the file.
+ */
+export class WalFileInUseError extends Error {
+    /** A stable code for checks: `error.code === "WAL_FILE_IN_USE"`. */
+    code = "WAL_FILE_IN_USE";
+    /** The path of the database file. */
+    dbPath;
+    /** The path of the side file that the check found: `<path>-wal` or `<path>-shm`. */
+    sideFile;
+    constructor(dbPath, sideFile) {
+        super(`The database file ${dbPath} is in WAL mode, and ${sideFile} exists: another connection has the file open, or it stopped before its close. ` +
+            "sql.js reads only the main file: it would read old rows, and the other connection would write over its changes. " +
+            "Use a driver that reads the WAL file, for example @mark1russell7/sqlite on Node.js 22.13 or later. " +
+            "Or close the other connection. When no process has the file open, open and close it once with SQLite: SQLite then copies the WAL file into the main file and removes the side files.");
+        this.dbPath = dbPath;
+        this.sideFile = sideFile;
+        this.name = "WalFileInUseError";
+    }
+}
+/**
+ * Tells if the header of a database file sets WAL mode. SQLite writes 2 into the bytes 18 and 19
+ * (the versions of the file format for a write and a read) of a file in WAL mode.
+ */
+function walHeader(bytes) {
+    return bytes.length >= 20 && bytes[18] === 2 && bytes[19] === 2;
+}
+/**
+ * The side files of a file in WAL mode. A connection makes them at its first statement, and the
+ * clean close of the last connection removes them. A connection in the locking mode EXCLUSIVE
+ * makes no shared-memory file, but it makes the WAL file.
+ */
+const WAL_SIDE_FILES = ["-wal", "-shm"];
+/** Gives the path of the first side file of a file in WAL mode that exists, or null. */
+async function walSideFile(dbPath) {
+    for (const suffix of WAL_SIDE_FILES) {
+        const path = `${dbPath}${suffix}`;
+        try {
+            await stat(path);
+            return path;
+        }
+        catch (error) {
+            if (error.code !== "ENOENT") {
+                throw error;
+            }
+        }
+    }
+    return null;
+}
+/**
+ * Throws a `WalFileInUseError` when the file is in WAL mode and its WAL file or its shared-memory
+ * file exists. A file in WAL mode with neither file has all of its rows in the main file, and no
+ * connection that ran a statement has it open. Thus sql.js reads it correctly.
+ */
+async function refuseLiveWal(dbPath, bytes) {
+    if (bytes === null || !walHeader(bytes)) {
+        return;
+    }
+    const sideFile = await walSideFile(dbPath);
+    if (sideFile !== null) {
+        throw new WalFileInUseError(dbPath, sideFile);
+    }
+}
+/**
  * Gets the bytes that a database with no content exports. The bytes depend on the version of
  * sql.js: version 1.14 exports no bytes, and version 1.15 exports one page.
  */
@@ -108,9 +176,14 @@ async function saveDatabase(db, dbPath, original, options = {}) {
     }
     // The file must still have the bytes that this database came from. Else another connection
     // or process wrote it, and this save would replace its changes.
-    if (options.refuseChangedFile && !sameBytes(await readIfExists(dbPath), original)) {
+    const onDisk = await readIfExists(dbPath);
+    if (options.refuseChangedFile && !sameBytes(onDisk, original)) {
         throw new DatabaseFileChangedError(dbPath);
     }
+    // A connection of a different driver can open the file in WAL mode after the load. Its rows
+    // are in the WAL file, so the main file does not change. A checkpoint of that connection
+    // writes its pages over this save, and its next frames apply to the wrong file.
+    await refuseLiveWal(dbPath, onDisk);
     const buffer = Buffer.from(data);
     // Ensure directory exists
     await mkdir(dirname(dbPath), { recursive: true });
