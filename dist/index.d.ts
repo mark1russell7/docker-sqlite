@@ -1,28 +1,22 @@
 /**
  * docker-sqlite - Reusable SQLite Docker setup with TypeScript utilities
  *
+ * The query functions, the migrations and the entry `/pure` are deprecated since 0.3.3. Their home is
+ * `@mark1russell7/sqlite/portable`. `withConnection` and `createConnection` keep a file of sql.js, and they are not deprecated.
+ *
  * @example
  * ```typescript
- * import { withConnection, query, execute, runMigrations } from 'docker-sqlite';
+ * import { withConnection } from '@mark1russell7/docker-sqlite';
+ * import { migrate, sqlJsConnection } from '@mark1russell7/sqlite/portable';
  *
- * // Define migrations
- * const migrations = [
- *   {
- *     version: 1,
- *     description: 'Create users table',
- *     up: 'CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT)',
- *     down: 'DROP TABLE users'
- *   }
- * ];
- *
- * // Run with auto-save
+ * // Save the file when the callback changed the database
  * await withConnection({ dbPath: './data/app.db' }, (db) => {
- *   runMigrations(db, migrations);
+ *   const connection = sqlJsConnection(db);
+ *   migrate(connection, ['CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT, email TEXT)']);
  *
- *   execute(db, 'INSERT INTO users (name, email) VALUES (?, ?)', ['Alice', 'alice@example.com']);
+ *   connection.prepare('INSERT INTO users (name, email) VALUES (?, ?)').run('Alice', 'alice@example.com');
  *
- *   const result = query(db, 'SELECT * FROM users');
- *   console.log(result.rows);
+ *   console.log(connection.prepare('SELECT * FROM users').all());
  * });
  * ```
  */

@@ -1,5 +1,8 @@
 /**
  * Migration utilities for SQLite
+ *
+ * These functions are deprecated since 0.3.3. Their home is `migrate` of `@mark1russell7/sqlite/portable`. The README of this
+ * package tells how to move a file that `runMigrations` migrated.
  */
 
 import type { Database } from "sql.js";
@@ -157,6 +160,8 @@ function atomically(db: Database, sql: string, work: () => void): void {
 
 /**
  * Get the current migration status
+ *
+ * @deprecated Since 0.3.3. Use `userVersion` of `@mark1russell7/sqlite/portable`: the steps after that version are pending.
  */
 export function getMigrationStatus(
   db: Database,
@@ -209,6 +214,9 @@ export function getMigrationStatus(
  * const applied = runMigrations(db, migrations);
  * console.log(`Applied ${applied.length} migrations`);
  * ```
+ *
+ * @deprecated Since 0.3.3. Use `migrate(sqlJsConnection(db), steps)` of `@mark1russell7/sqlite/portable`. The step `i` of the list gives the
+ * version `i + 1`. The README of this package tells how to move a file.
  */
 export function runMigrations(db: Database, migrations: Migration[]): Migration[] {
   const status = getMigrationStatus(db, migrations);
@@ -239,6 +247,9 @@ export function runMigrations(db: Database, migrations: Migration[]): Migration[
 
 /**
  * Rollback the last applied migration
+ *
+ * @deprecated Since 0.3.3. The home `@mark1russell7/sqlite` has no down migration. Write the change as a new step of
+ * `migrate`.
  */
 export function rollbackMigration(
   db: Database,
@@ -278,6 +289,8 @@ export function rollbackMigration(
 
 /**
  * Create a migration from SQL strings
+ *
+ * @deprecated Since 0.3.3. A step of `migrate` of `@mark1russell7/sqlite/portable` is a SQL text or a function of the connection.
  */
 export function createMigration(
   version: number,

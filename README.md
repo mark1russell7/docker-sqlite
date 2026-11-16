@@ -10,21 +10,66 @@
 **[Try it in your browser](https://mark1russell7.github.io/docker-sqlite/).** The site runs real SQLite with sql.js. Edit the migrations, run them, and query the rows with the functions of this package. The log shows the SQL of each call.
 
 ```bash
-npm install @mark1russell7/docker-sqlite
+npm install @mark1russell7/docker-sqlite @mark1russell7/sqlite
 ```
 
 ```typescript
-import { withConnection, execute, query } from "@mark1russell7/docker-sqlite";
+import { withConnection } from "@mark1russell7/docker-sqlite";
+import { sqlJsConnection } from "@mark1russell7/sqlite/portable";
 
 const rows = await withConnection({ dbPath: "./data/app.db" }, (db) => {
-  execute(db, "CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, text TEXT)");
-  execute(db, "INSERT INTO notes (text) VALUES (?)", ["hello"]);
-  return query(db, "SELECT text FROM notes").rows;
+  const connection = sqlJsConnection(db);
+  connection.exec("CREATE TABLE IF NOT EXISTS notes (id INTEGER PRIMARY KEY, text TEXT)");
+  connection.prepare("INSERT INTO notes (text) VALUES (?)").run("hello");
+  return connection.prepare("SELECT text FROM notes").all();
 });
 console.log(rows); // [{ text: "hello" }] (one more row on each run)
 ```
 
 The file is saved only when the database changed, and calls for one file run one at a time. The package is the database layer of `db.*` and `logs.*` in the [client monorepo](https://github.com/mark1russell7/client) (see [the client site](https://mark1russell7.github.io/client/)).
+
+## Moved to `@mark1russell7/sqlite`
+
+Since 0.3.3, the query functions, the migrations and the entry `/pure` are deprecated. Their home is [`@mark1russell7/sqlite`](https://github.com/mark1russell7/sqlite). Its entry `@mark1russell7/sqlite/portable` imports no module of Node.js. Its function `sqlJsConnection` gives a connection over a database of sql.js.
+
+- The deprecation is in the documentation only. Each function keeps its behavior, and the package gives no warning at run time.
+- `withConnection` and `createConnection` are not deprecated. They keep a file of sql.js, and the save examines the bytes of the database. Thus a write through `sqlJsConnection` is saved too.
+- The home needs Node.js 22.13 or later. On Node.js 22.0 to 22.12, keep these functions until you install a newer Node.js.
+
+| Deprecated in this package | Its replacement in `@mark1russell7/sqlite/portable` |
+| --- | --- |
+| `query(db, sql, params)` | `sqlJsConnection(db).prepare(sql).all(...params)`. It gives the rows, with no list of the columns. |
+| `execute(db, sql, params)` | `prepare(sql).run(...params)`. It gives `changes` and `lastInsertRowid`. |
+| `execMultiple(db, sql)` | `exec(sql)` |
+| `lastInsertRowId(db)` | `lastInsertRowid` of the result of `run` |
+| `tableExists(db, name)` | `prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = ?").get(name) !== undefined` |
+| `runMigrations(db, migrations)` and `createMigration` | `migrate(connection, steps)`. A step is a SQL text or a function of the connection. The step `i` of the list gives the version `i + 1`, in the pragma `user_version`. |
+| `getMigrationStatus(db, migrations)` | `userVersion(connection)`. The steps after that version are pending. |
+| `rollbackMigration(db, migrations)` | No replacement. The home has no down migration. Write the change as a new step. |
+| The types `QueryResult`, `ExecuteResult`, `Migration` and `MigrationStatus` | The types `SqlChanges` and `Migration` |
+| The entry `@mark1russell7/docker-sqlite/pure` | The entry `@mark1russell7/sqlite/portable` |
+
+### Move a file of `runMigrations`
+
+`runMigrations` keeps the version of each migration in the table `_migrations`. `migrate` of the home reads the pragma `user_version`, and that value is 0 in such a file. Thus, with no move, `migrate` applies the first step again.
+
+1. Write the steps for `migrate`: the `up` text of each migration, in the order of its version.
+2. Before `migrate`, set `user_version` to the count of rows of `_migrations`. Do this only for a file with the version 0 and the table `_migrations`:
+
+```typescript
+import { migrate, sqlJsConnection, userVersion } from "@mark1russell7/sqlite/portable";
+
+const connection = sqlJsConnection(db);
+const old = connection.prepare("SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '_migrations'").get();
+if (userVersion(connection) === 0 && old !== undefined) {
+  const { count } = connection.prepare("SELECT count(*) AS count FROM _migrations").get() as { count: number };
+  connection.exec(`PRAGMA user_version = ${count}`);
+}
+migrate(connection, steps);
+```
+
+- The move is correct when the rows of `_migrations` are the first versions of the list, with no gap. `runMigrations` applies the migrations in the order of their versions. Thus this is true, unless a migration with a lower version came after a higher one.
+- The table `_migrations` can stay in the file. `migrate` does not read it.
 
 ## Overview
 
@@ -33,12 +78,13 @@ The file is saved only when the database changed, and calls for one file run one
 - **Portable SQLite via WASM** - Uses sql.js for cross-platform compatibility without native dependencies
 - **Type-safe utilities** - Connection management, query execution, and migration system with full TypeScript support
 - **Auto-save functionality** - Changes automatically persisted to file with managed connections
-- **Migration system** - Version-controlled schema migrations with up/down support
+- **Migration system** - Version-controlled schema migrations with up/down support (deprecated since 0.3.3, see [Moved to `@mark1russell7/sqlite`](#moved-to-mark1russell7sqlite))
 - **Docker integration** - Optional web UI for database browsing via docker-compose
 - **Zero native dependencies** - Works in Node.js, browsers, and edge environments
 
 ## Table of Contents
 
+- [Moved to `@mark1russell7/sqlite`](#moved-to-mark1russell7sqlite)
 - [Architecture](#architecture)
 - [Installation](#installation)
 - [Docker Setup](#docker-setup)
@@ -226,16 +272,16 @@ npm install @mark1russell7/docker-sqlite
 
 ### In a browser
 
-The entry `@mark1russell7/docker-sqlite/pure` has the query functions and the migrations. It imports no Node.js module, so a browser bundle can use it with sql.js:
+The entry `@mark1russell7/docker-sqlite/pure` is deprecated since 0.3.3. Its home is the entry `@mark1russell7/sqlite/portable`, which also imports no module of Node.js. A browser bundle can use it with sql.js:
 
 ```typescript
 import initSqlJs from "sql.js";
-import { createMigration, query, runMigrations } from "@mark1russell7/docker-sqlite/pure";
+import { migrate, sqlJsConnection } from "@mark1russell7/sqlite/portable";
 
 const SQL = await initSqlJs({ locateFile: (file) => `/assets/${file}` });
-const db = new SQL.Database();
-runMigrations(db, [createMigration(1, "Create the users table", "CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)")]);
-console.log(query(db, "SELECT name FROM sqlite_master WHERE type = 'table'").rows);
+const connection = sqlJsConnection(new SQL.Database());
+migrate(connection, ["CREATE TABLE users (id INTEGER PRIMARY KEY, name TEXT)"]);
+console.log(connection.prepare("SELECT name FROM sqlite_master WHERE type = 'table'").all());
 ```
 
 `withConnection` and `createConnection` read and write files, so only the main entry has them.
@@ -393,6 +439,8 @@ async function addLog(message: string): Promise<void> {
 
 ### Query Operations
 
+> These functions are deprecated since 0.3.3. See [Moved to `@mark1russell7/sqlite`](#moved-to-mark1russell7sqlite).
+
 #### `query<T>(db, sql, params?): QueryResult<T>`
 
 Execute a SELECT query and return typed results.
@@ -515,6 +563,8 @@ console.log(`Created user with ID: ${userId}`);
 ```
 
 ## Migration System
+
+> These functions are deprecated since 0.3.3. See [Moved to `@mark1russell7/sqlite`](#moved-to-mark1russell7sqlite), and its move of a file.
 
 The package includes a complete migration system for versioned schema management.
 
@@ -1074,14 +1124,14 @@ import {
   DatabaseFileChangedError,
   WalFileInUseError,
 
-  // Query
+  // Query (deprecated since 0.3.3)
   query,
   execute,
   execMultiple,
   tableExists,
   lastInsertRowId,
 
-  // Migration
+  // Migration (deprecated since 0.3.3)
   runMigrations,
   rollbackMigration,
   getMigrationStatus,
