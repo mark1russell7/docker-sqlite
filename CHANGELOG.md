@@ -1,5 +1,13 @@
 # Change history
 
+## 0.3.3
+
+### Deprecations
+
+- The query functions (`query`, `execute`, `execMultiple`, `lastInsertRowId` and `tableExists`), the migrations (`runMigrations`, `getMigrationStatus`, `rollbackMigration` and `createMigration`), their types and the entry `/pure` are deprecated. Their home is `@mark1russell7/sqlite`. Its entry `/portable` operates on a database of sql.js through `sqlJsConnection`.
+- The README has the replacement of each function, and the move of a file that `runMigrations` migrated.
+- The deprecation is in the documentation only. The functions keep their behavior, and they give no warning at run time. `withConnection` and `createConnection` are not deprecated.
+
 ## 0.3.2
 
 ### Corrections
