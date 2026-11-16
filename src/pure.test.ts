@@ -41,7 +41,7 @@ describe("the entry ./pure", () => {
   });
 
   it("has the same functions as the main entry, except the connections", () => {
-    const connections = ["withConnection", "createConnection", "DatabaseFileChangedError"];
+    const connections = ["withConnection", "createConnection", "DatabaseFileChangedError", "WalFileInUseError"];
     const expected = Object.keys(main).filter((name) => !connections.includes(name)).sort();
     expect(Object.keys(pure).sort()).toEqual(expected);
     for (const name of expected) {
