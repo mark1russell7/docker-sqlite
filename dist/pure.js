@@ -3,6 +3,8 @@
  *
  * Each function gets a sql.js `Database`. A browser bundle can import this entry,
  * `@mark1russell7/docker-sqlite/pure`. It does not import a `node:` module.
+ *
+ * This entry is deprecated since 0.3.3. Its home is `@mark1russell7/sqlite/portable`, which also imports no module of Node.js.
  */
 export { query, execute, execMultiple, lastInsertRowId, tableExists, } from "./query.js";
 export { getMigrationStatus, runMigrations, rollbackMigration, createMigration, } from "./migrate.js";

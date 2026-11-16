@@ -15,6 +15,8 @@ export interface ConnectionConfig {
 export type ConnectionCallback<T> = (db: Database) => T | Promise<T>;
 /**
  * Result of a query operation
+ *
+ * @deprecated Since 0.3.3, with `query`. The `all` of a statement of `@mark1russell7/sqlite/portable` gives the rows.
  */
 export interface QueryResult<T = Record<string, unknown>> {
     /** Column names */
@@ -24,6 +26,8 @@ export interface QueryResult<T = Record<string, unknown>> {
 }
 /**
  * Result of an execute operation (INSERT, UPDATE, DELETE)
+ *
+ * @deprecated Since 0.3.3, with `execute`. Use `SqlChanges` of `@mark1russell7/sqlite/portable`.
  */
 export interface ExecuteResult {
     /** Number of rows affected */
@@ -31,6 +35,8 @@ export interface ExecuteResult {
 }
 /**
  * Migration definition
+ *
+ * @deprecated Since 0.3.3, with `runMigrations`. Use `Migration` of `@mark1russell7/sqlite/portable`: a SQL text or a function.
  */
 export interface Migration {
     /** Migration version (must be unique and sequential) */
@@ -44,6 +50,8 @@ export interface Migration {
 }
 /**
  * Migration status
+ *
+ * @deprecated Since 0.3.3, with `getMigrationStatus`. Use `userVersion` of `@mark1russell7/sqlite/portable`.
  */
 export interface MigrationStatus {
     /** Current version (0 if no migrations applied) */
