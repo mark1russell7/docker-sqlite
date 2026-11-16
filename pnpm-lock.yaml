@@ -13,11 +13,11 @@ importers:
         version: 1.4.11
       sql.js:
         specifier: ^1.14.2
-        version: 1.15.2
+        version: 1.16.0
     devDependencies:
       '@mark1russell7/cue':
         specifier: github:mark1russell7/cue#main
-        version: https://codeload.github.com/mark1russell7/cue/tar.gz/9d325500382215370b2a970a0ffcf4ab8b7eae07
+        version: https://codeload.github.com/mark1russell7/cue/tar.gz/86f7c3bafa9f3e1090a2302b46a3319c06977dea
       '@types/node':
         specifier: ^22.0.0
         version: 22.19.11
@@ -41,7 +41,7 @@ importers:
         version: 0.5.0
       sql.js:
         specifier: ^1.14.2
-        version: 1.15.2
+        version: 1.16.0
     devDependencies:
       '@mark1russell7/cue':
         specifier: ^2.1.1
@@ -109,8 +109,8 @@ packages:
     engines: {node: '>=22'}
     hasBin: true
 
-  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/9d325500382215370b2a970a0ffcf4ab8b7eae07':
-    resolution: {tarball: https://codeload.github.com/mark1russell7/cue/tar.gz/9d325500382215370b2a970a0ffcf4ab8b7eae07}
+  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/86f7c3bafa9f3e1090a2302b46a3319c06977dea':
+    resolution: {tarball: https://codeload.github.com/mark1russell7/cue/tar.gz/86f7c3bafa9f3e1090a2302b46a3319c06977dea}
     version: 2.1.4
     engines: {node: '>=22'}
     hasBin: true
@@ -482,8 +482,8 @@ packages:
     resolution: {integrity: sha512-KGj/8Y43x35aZVDtt+J4mK1hoLGHULMYfSkODJNQjNDC3oW1PqPoxMwo0pLUsWM/UEGzON/NxeHywEfNXNP3Vw==}
     engines: {node: '>=0.10.0'}
 
-  sql.js@1.15.2:
-    resolution: {integrity: sha512-ZmMYFsZPZWDKIJUh3A5rdnpRV3hB/r7AijwAzSzLnfv/9CSx4obUmDtA8brAjWJWjGtUVh43nIEJ+6nl6HuOUg==}
+  sql.js@1.16.0:
+    resolution: {integrity: sha512-q/JOZuJfmVh8Zf8Eo+cMJvtxAWeWBqTfJ6AQYGXZmcaLGHMwhA2niH3fQYHrBtPeOss1ttzHec07K5+rHaMRMw==}
 
   stackback@0.0.2:
     resolution: {integrity: sha512-1XMJE5fQo1jGH6Y/7ebnwPOBEkIEnT4QF32d5R1+VXdXveM0IBMJt8zfaxX1P3QhVwrYe+576+jkANtSS2mBbw==}
@@ -654,7 +654,7 @@ snapshots:
 
   '@mark1russell7/cue@2.1.4': {}
 
-  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/9d325500382215370b2a970a0ffcf4ab8b7eae07': {}
+  '@mark1russell7/cue@https://codeload.github.com/mark1russell7/cue/tar.gz/86f7c3bafa9f3e1090a2302b46a3319c06977dea': {}
 
   '@mark1russell7/rigor-generators@0.1.16': {}
 
@@ -966,7 +966,7 @@ snapshots:
 
   source-map-js@1.2.2: {}
 
-  sql.js@1.15.2: {}
+  sql.js@1.16.0: {}
 
   stackback@0.0.2: {}
 
