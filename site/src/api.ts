@@ -123,7 +123,7 @@ export const API: readonly ApiRow[] = [
     ],
   },
   {
-    names: ["withConnection", "createConnection", "DatabaseFileChangedError"],
+    names: ["withConnection", "createConnection", "DatabaseFileChangedError", "WalFileInUseError"],
     what: "They load a database file, run your code and save the file in one atomic step. Each file gets one call at a time.",
     examples: [],
     note: "Node.js only: these functions read and write files. Import them from the main entry.",

@@ -1,5 +1,12 @@
 # Change history
 
+## 0.3.2
+
+### Corrections
+
+- `withConnection`, `createConnection` and `save()` refuse a file in WAL mode when its WAL file (`<path>-wal`) has data. They throw a `WalFileInUseError` (`code: "WAL_FILE_IN_USE"`) and do not read or write the file. Another connection, for example of `node:sqlite`, has such a file open, or it stopped before a checkpoint. sql.js reads only the main file. Before, a read did not see the rows of the WAL file. A write reported success, but the next checkpoint of the other connection wrote over it, and the row was lost with no error. The error names the path and the next step: use a driver that reads the WAL file, or checkpoint the file.
+- A file in WAL mode with no WAL file, or with an empty WAL file, works as before. SQLite deletes the WAL file when the last connection closes cleanly. A file in rollback-journal mode works as before.
+
 ## 0.3.1
 
 ### Corrections

@@ -5,7 +5,7 @@
 import initSqlJs, { type Database } from "sql.js";
 import { AsyncLocalStorage } from "node:async_hooks";
 import { randomUUID } from "node:crypto";
-import { readFile, mkdir, open, rename, unlink } from "node:fs/promises";
+import { readFile, mkdir, open, rename, stat, unlink } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import type { ConnectionConfig, ConnectionCallback } from "./types.js";
 
@@ -39,6 +39,7 @@ async function loadDatabase(dbPath: string): Promise<LoadedDatabase> {
 
   try {
     const buffer = await readFile(dbPath);
+    await refuseLiveWal(dbPath, buffer);
     // sql.js keeps the array that it gets and writes into it: give it a copy, so `original`
     // keeps the bytes of the file
     return { db: new SQL.Database(new Uint8Array(buffer)), original: buffer };
@@ -82,6 +83,60 @@ export class DatabaseFileChangedError extends Error {
     );
     this.dbPath = dbPath;
     this.name = "DatabaseFileChangedError";
+  }
+}
+
+/**
+ * The error of `withConnection`, `createConnection` and `save` for a file in WAL mode whose WAL
+ * file has data. Another connection, for example of `node:sqlite`, has the file open, or it
+ * stopped before a checkpoint. sql.js reads only the main file. Thus it reads old rows, and the
+ * next checkpoint writes over its save. The call does not read or write the file.
+ */
+export class WalFileInUseError extends Error {
+  /** A stable code for checks: `error.code === "WAL_FILE_IN_USE"`. */
+  readonly code = "WAL_FILE_IN_USE";
+  /** The path of the database file. */
+  readonly dbPath: string;
+
+  constructor(dbPath: string) {
+    super(
+      `The database file ${dbPath} is in WAL mode, and its WAL file ${dbPath}-wal has data. ` +
+        "sql.js reads only the main file: it would read old rows, and a checkpoint would write over its changes. " +
+        "Use a driver that reads the WAL file, for example @procedures/sqlite on Node.js 22.13 or later. " +
+        "Or checkpoint the file with PRAGMA wal_checkpoint(TRUNCATE) when no other connection has it open."
+    );
+    this.dbPath = dbPath;
+    this.name = "WalFileInUseError";
+  }
+}
+
+/**
+ * Tells if the header of a database file sets WAL mode. SQLite writes 2 into the bytes 18 and 19
+ * (the versions of the file format for a write and a read) of a file in WAL mode.
+ */
+function walHeader(bytes: Uint8Array): boolean {
+  return bytes.length >= 20 && bytes[18] === 2 && bytes[19] === 2;
+}
+
+/** Tells if the WAL file of a database has data. A file that SQLite closed cleanly has no WAL file. */
+async function walHasData(dbPath: string): Promise<boolean> {
+  try {
+    return (await stat(`${dbPath}-wal`)).size > 0;
+  } catch (error) {
+    if ((error as NodeJS.ErrnoException).code === "ENOENT") {
+      return false;
+    }
+    throw error;
+  }
+}
+
+/**
+ * Throws a `WalFileInUseError` when the file is in WAL mode and its WAL file has data. A file in
+ * WAL mode with no WAL file has all of its rows in the main file, so sql.js reads it correctly.
+ */
+async function refuseLiveWal(dbPath: string, bytes: Uint8Array | null): Promise<void> {
+  if (bytes !== null && walHeader(bytes) && (await walHasData(dbPath))) {
+    throw new WalFileInUseError(dbPath);
   }
 }
 
@@ -132,9 +187,14 @@ async function saveDatabase(
   }
   // The file must still have the bytes that this database came from. Else another connection
   // or process wrote it, and this save would replace its changes.
-  if (options.refuseChangedFile && !sameBytes(await readIfExists(dbPath), original)) {
+  const onDisk = await readIfExists(dbPath);
+  if (options.refuseChangedFile && !sameBytes(onDisk, original)) {
     throw new DatabaseFileChangedError(dbPath);
   }
+  // A connection of a different driver can write the file in WAL mode after the load. Its rows
+  // are in the WAL file, so the main file does not change. A checkpoint of that connection
+  // writes its pages over this save.
+  await refuseLiveWal(dbPath, onDisk);
   const buffer = Buffer.from(data);
 
   // Ensure directory exists
