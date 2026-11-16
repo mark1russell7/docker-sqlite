@@ -1,11 +1,12 @@
 /**
- * A file in WAL mode whose WAL file has data: sql.js reads only the main file, so the package
- * refuses it. Before 0.3.2, a read missed the rows of the WAL file, and a write was lost with no
- * error at the next checkpoint of the other connection.
+ * A file in WAL mode with a WAL file or a shared-memory file: another connection has it open, and
+ * sql.js reads only the main file, so the package refuses it. Before 0.3.2, a read missed the rows
+ * of the WAL file, and a write was lost with no error at the next checkpoint of the other
+ * connection.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
-import { existsSync, mkdtempSync, rmSync, statSync } from "node:fs";
+import { existsSync, mkdtempSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { createConnection, WalFileInUseError, withConnection } from "./connect.js";
@@ -84,6 +85,27 @@ function liveWalWriter(path: string): NodeDatabase {
   return writer;
 }
 
+/** A file in WAL mode that SQLite closed cleanly: it has no side files. */
+function cleanWalFile(path: string): void {
+  const setup = connect(path);
+  setup.exec("PRAGMA journal_mode = WAL; CREATE TABLE t (x TEXT); INSERT INTO t VALUES ('a')");
+  close(setup);
+  expect(existsSync(`${path}-wal`)).toBe(false);
+  expect(existsSync(`${path}-shm`)).toBe(false);
+}
+
+/**
+ * A connection that holds the file open and has written nothing. Its first read makes the
+ * shared-memory file, and its WAL file is missing or empty.
+ */
+function idleReader(path: string): NodeDatabase {
+  const reader = connect(path);
+  expect(values(reader)).toEqual(["a"]);
+  expect(existsSync(`${path}-shm`)).toBe(true);
+  expect(existsSync(`${path}-wal`) ? statSync(`${path}-wal`).size : 0).toBe(0);
+  return reader;
+}
+
 describe.skipIf(NodeDatabase === null)("a file in WAL mode", () => {
   it("refuses a read when another connection has rows in the WAL file", async () => {
     const path = tempDb();
@@ -92,7 +114,49 @@ describe.skipIf(NodeDatabase === null)("a file in WAL mode", () => {
     const read = withConnection({ dbPath: path }, (db) => query(db, "SELECT x FROM t").rows);
 
     await expect(read).rejects.toBeInstanceOf(WalFileInUseError);
-    await expect(read).rejects.toMatchObject({ code: "WAL_FILE_IN_USE", dbPath: path });
+    await expect(read).rejects.toMatchObject({ code: "WAL_FILE_IN_USE", dbPath: path, sideFile: `${path}-wal` });
+  });
+
+  it("refuses a read when an open connection has written nothing (an empty or missing WAL file)", async () => {
+    const path = tempDb();
+    cleanWalFile(path);
+    idleReader(path);
+
+    const read = withConnection({ dbPath: path }, (db) => query(db, "SELECT x FROM t").rows);
+
+    await expect(read).rejects.toBeInstanceOf(WalFileInUseError);
+    await expect(createConnection({ dbPath: path })).rejects.toBeInstanceOf(WalFileInUseError);
+  });
+
+  it("refuses a save when a connection opens the file after the load and writes nothing", async () => {
+    const path = tempDb();
+    cleanWalFile(path);
+
+    const { db, save } = await createConnection({ dbPath: path });
+    try {
+      const reader = idleReader(path);
+      execute(db, "INSERT INTO t VALUES ('from-sqljs')");
+
+      await expect(save()).rejects.toBeInstanceOf(WalFileInUseError);
+      expect(values(reader)).toEqual(["a"]);
+    } finally {
+      db.close();
+    }
+  });
+
+  it("refuses each side file alone: a shared-memory file, or an empty WAL file", async () => {
+    // A connection that stopped uncleanly leaves a shared-memory file. A connection in the
+    // locking mode EXCLUSIVE makes an empty WAL file and no shared-memory file.
+    for (const suffix of ["-shm", "-wal"]) {
+      const path = tempDb();
+      cleanWalFile(path);
+      writeFileSync(`${path}${suffix}`, "");
+
+      await expect(withConnection({ dbPath: path }, () => undefined)).rejects.toMatchObject({
+        code: "WAL_FILE_IN_USE",
+        sideFile: `${path}${suffix}`,
+      });
+    }
   });
 
   it("refuses a write, and the rows of the other connection stay", async () => {
@@ -140,17 +204,18 @@ describe.skipIf(NodeDatabase === null)("a file in WAL mode", () => {
     liveWalWriter(path);
 
     await expect(withConnection({ dbPath: path }, () => undefined)).rejects.toThrow(
-      /WAL mode.*@procedures\/sqlite on Node\.js 22\.13 or later.*wal_checkpoint\(TRUNCATE\)/s
+      /WAL mode.*-wal exists.*@mark1russell7\/sqlite on Node\.js 22\.13 or later.*close the other connection/s
     );
     await expect(withConnection({ dbPath: path }, () => undefined)).rejects.toThrow(path);
   });
 
-  it("reads and writes a WAL file that SQLite closed cleanly (no WAL file)", async () => {
+  it("reads and writes a WAL file that SQLite closed cleanly (no side files)", async () => {
     const path = tempDb();
     const setup = connect(path);
     setup.exec("PRAGMA journal_mode = WAL; CREATE TABLE t (x TEXT); INSERT INTO t VALUES ('a'), ('b')");
     close(setup);
     expect(existsSync(`${path}-wal`)).toBe(false);
+    expect(existsSync(`${path}-shm`)).toBe(false);
 
     const rows = await withConnection({ dbPath: path }, (db) => query<{ x: string }>(db, "SELECT x FROM t ORDER BY rowid").rows);
     expect(rows.map((row) => row.x)).toEqual(["a", "b"]);

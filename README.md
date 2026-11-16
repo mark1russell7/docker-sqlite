@@ -341,7 +341,8 @@ console.log(users.rows);
 - Makes the database file only when the callback changes the database. A query of a missing file does not make an empty file.
 - Calls for one file run one at a time in this process. On Windows, two spellings of one path (case) share one queue.
 - Throws a `DatabaseFileChangedError` and writes nothing when the callback changed the database and the file changed during the callback. For example, a `save()` of `createConnection` in the callback wrote the file, or another process wrote it. Else, the old copy of the callback replaces those changes.
-- Throws a `WalFileInUseError` (`code: "WAL_FILE_IN_USE"`) and does not read or write when the file is in WAL mode and its WAL file (`<path>-wal`) has data. sql.js reads only the main file. Thus it reads old rows, and the next checkpoint of the other connection writes over its save. Use a driver that reads the WAL file, for example `@procedures/sqlite` on Node.js 22.13 or later. Or checkpoint the file when no other connection has it open.
+- Throws a `WalFileInUseError` (`code: "WAL_FILE_IN_USE"`) and does not read or write when the file is in WAL mode and has a side file. The side files are the WAL file (`<path>-wal`) and the shared-memory file (`<path>-shm`). Another connection has the file open, or it stopped before its close. sql.js reads only the main file. Thus it reads old rows, and the other connection writes over its save. Use a driver that reads the WAL file, for example `@mark1russell7/sqlite` on Node.js 22.13 or later. Or close the other connection.
+- Limits of this check: the check and the save are two steps, and sql.js takes no lock. A connection that ran no statement yet has no side file, so the check does not see it.
 - Writes a temporary file, flushes it to the disk and renames it over the database file. A crash or a power loss during the save cannot leave a truncated database.
 - Closes database connection in finally block
 - Creates parent directories as needed
@@ -369,7 +370,7 @@ try {
 - `save()` writes the file only when the database changed, with the same atomic save as `withConnection`.
 - `save()` runs in the queue of the file: one call at a time with `withConnection` and the other saves of this process. In a `withConnection` callback for the same file, it runs at once. Work that the callback starts and that saves after the callback ended, for example a timer, waits in the queue.
 - `save()` throws a `DatabaseFileChangedError` (`code: "DATABASE_FILE_CHANGED"`) and writes nothing when the file changed after the connection loaded it or saved it last. Another connection or process wrote the file, and the old copy of this connection would replace those changes. After the error, close the connection, open a new one and make the change again.
-- `createConnection` and `save()` throw a `WalFileInUseError` when the file is in WAL mode and its WAL file has data, as `withConnection` does.
+- `createConnection` and `save()` throw a `WalFileInUseError` when the file is in WAL mode and has a side file, as `withConnection` does. The check has the same limits.
 
 ```typescript
 import { createConnection, DatabaseFileChangedError, execute } from '@mark1russell7/docker-sqlite';
