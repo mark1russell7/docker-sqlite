@@ -18,9 +18,30 @@ concurrency:
 
 jobs:
   ci:
-    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@f7e9a04c2e3965d20d1aea5a2e83e96ce8d23d16 # main
+    uses: mark1russell7/template/.github/workflows/reusable-ci.yml@2030c7dec9485afebb504772f79f41f23bdb2df7 # main
     with:
       # tsc -b writes dist, as release.yml builds it
       scripts: build typecheck test
       # The maintained LTS lines and the current line
       node-versions: '["22", "24", "26"]'
+
+  # The site of .github/site.json: the build, the site check and the probe, with no deploy (CI.md of the
+  # template, "The site config"). The Pages workflow deploys the same site from main.
+  site:
+    uses: mark1russell7/template/.github/workflows/reusable-pages-check.yml@2030c7dec9485afebb504772f79f41f23bdb2df7 # main
+    permissions:
+      contents: read
+
+  # The summary check of the ruleset of main: each job passed (CI.md of the template, "The check of the
+  # ruleset").
+  ci-ok:
+    name: CI OK
+    if: ${{ !cancelled() }}
+    needs: [ci, site]
+    runs-on: ubuntu-latest
+    timeout-minutes: 2
+    permissions: {}
+    steps:
+      - uses: mark1russell7/template/.github/actions/gate-summary@2030c7dec9485afebb504772f79f41f23bdb2df7 # main
+        with:
+          needs: ${{ toJSON(needs) }}
