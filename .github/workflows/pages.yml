@@ -8,8 +8,6 @@ name: Pages
 on:
   push:
     branches: [main]
-  # A pull request builds the site and runs the site check, with no deploy.
-  pull_request:
   # One build each day, so the Status page shows the open pull requests and issues of the day
   schedule:
     - cron: "23 7 * * *"
@@ -25,7 +23,7 @@ concurrency:
 
 jobs:
   pages:
-    uses: mark1russell7/template/.github/workflows/reusable-pages.yml@f7e9a04c2e3965d20d1aea5a2e83e96ce8d23d16 # main
+    uses: mark1russell7/template/.github/workflows/reusable-pages.yml@2030c7dec9485afebb504772f79f41f23bdb2df7 # main
     # The build job of the shared workflow gets only the read permissions. Only its deploy job,
     # which runs no code of the repository, writes to Pages.
     permissions:
@@ -37,25 +35,6 @@ jobs:
       statuses: read
       pages: write
       id-token: write
-    with:
-      # The install builds the package (its script prepare). The site bundles the entry ./pure of the package from the
-      # workspace, so the page runs the same code as npm, with sql.js and its WebAssembly file from the site.
-      build: pnpm --filter @docker-sqlite/site run build
-      out: site/dist
-      env: '{"SITE_BASE": "/${{ github.event.repository.name }}"}'
-      # The site-pages action adds releases/, status/, data/releases.json and data/status.json to the built site.
-      site-pages: true
-      # The Status page shows the items of docs/ROADMAP.md, and the open pull requests and issues.
-      roadmap: docs/ROADMAP.md
-      packages: "@mark1russell7/docker-sqlite"
-      site-name: docker-sqlite
-      # The site check: a browser opens each page at 360, 400 and 1280 px, in light and dark, before the deploy.
-      # The probe runs the migrations and the queries. The check reads the TypeScript source and removes its types.
-      # A failure stops the deploy.
-      site-check: true
-      site-check-pages: /,/releases/,/status/
-      site-check-probe: site/src/check-probe.ts
-      deploy: ${{ github.event_name != 'pull_request' }}
 
   # This job examines the deployed site: the home page and the pages of site-pages.
   # It starts no code of the repository and reads only the public site.
